@@ -1,0 +1,67 @@
+name: Docker Build CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: autoflowops-backend:ci
+          load: true
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          tags: autoflowops-frontend:ci
+          load: true
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Start stack
+        run: |
+          docker compose up -d
+          echo "Waiting for backend to be healthy..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/api/health > /dev/null 2>&1; then
+              echo "Backend is up."
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Smoke test — /api/health
+        run: |
+          response=$(curl -sf http://localhost:8000/api/health)
+          echo "$response"
+          echo "$response" | grep -q '"status":"ok"'
+
+      - name: Smoke test — /api/version
+        run: |
+          response=$(curl -sf http://localhost:8000/api/version)
+          echo "$response"
+          echo "$response" | grep -q '"version"'
+
+      - name: Smoke test — frontend
+        run: curl -sf http://localhost:3000 | grep -q "AutoFlowOps"
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v
