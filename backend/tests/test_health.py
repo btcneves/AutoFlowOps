@@ -8,6 +8,7 @@ def test_health_returns_ok(client: TestClient) -> None:
     assert data["status"] == "ok"
     assert data["app"] == "AutoFlowOps"
     assert "env" in data
+    assert data["database"] == "ok"
 
 
 def test_version_returns_version(client: TestClient) -> None:

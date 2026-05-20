@@ -2,6 +2,7 @@ export interface HealthResponse {
   status: string
   app: string
   env: string
+  database: 'ok' | 'error'
 }
 
 export interface VersionResponse {

@@ -7,7 +7,7 @@ Interactive documentation is also available at:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
-The MVP does not require authentication. All examples assume the backend is running via `make up` or `uvicorn app.main:app --reload`.
+All examples assume the backend is running via `make up` or `uvicorn app.main:app --reload`. Routes other than `/api/health`, `/api/version`, `/api/auth/login` and webhook receive require a JWT Bearer token; examples omit the `Authorization` header for brevity unless authentication is the focus.
 
 ---
 
@@ -27,7 +27,8 @@ Response `200 OK`:
 {
   "status": "ok",
   "app": "AutoFlowOps",
-  "env": "development"
+  "env": "development",
+  "database": "ok"
 }
 ```
 
@@ -43,7 +44,7 @@ Response `200 OK`:
 
 ```json
 {
-  "version": "0.1.0",
+  "version": "0.3.0",
   "app": "AutoFlowOps"
 }
 ```

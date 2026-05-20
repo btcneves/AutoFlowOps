@@ -31,6 +31,28 @@ Browser
 
 ---
 
+## Production Deployment
+
+The production topology keeps the backend, frontend and PostgreSQL services on a private Docker network and exposes only Caddy to the public internet.
+
+```text
+Internet
+  └─> Caddy (80/443, automatic HTTPS)
+        ├─> /api/*, /docs, /redoc, /openapi.json → backend:8000
+        └─> everything else                    → frontend:3000
+
+Docker network only
+  ├─> backend:8000
+  ├─> frontend:3000
+  └─> db:5432
+```
+
+`docker-compose.prod.yml` removes direct host port publishing for PostgreSQL, backend and frontend. Caddy terminates TLS, sets security headers and routes traffic by path. The backend health endpoint includes `database: "ok"` or `database: "error"` so container healthchecks and external monitors can distinguish API reachability from database connectivity.
+
+See [docs/deployment.md](deployment.md) for the full VPS deployment guide.
+
+---
+
 ## Data Model
 
 The initial Alembic migration creates these tables:
@@ -174,7 +196,7 @@ See [docs/security.md](security.md) for the full masking reference.
 
 ---
 
-## Known Boundaries (v0.2.0)
+## Known Boundaries (v0.3.0)
 
 - **In-process scheduler.** APScheduler runs inside the backend process. Best suited to a single replica deployment.
 - **One request per execution.** Retry settings are persisted for future worker behavior; the current HTTP runner performs one request per execution.

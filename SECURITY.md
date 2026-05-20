@@ -65,16 +65,16 @@ See [docs/security.md](docs/security.md) for full details, examples and producti
 ## Important Notices
 
 - **Never use real tokens or credentials in demo mode or public examples.**
-- **Never commit a `.env` file** — only `.env.example` is version-controlled.
+- **Never commit `.env` or `.env.production` files** — only templates such as `.env.example` and `.env.production.example` are version-controlled.
 - **Webhook secret tokens are stored as SHA-256 hashes**, never in plain text.
 - **Authorization headers are never stored in full** in execution logs.
-- The MVP has no authentication layer. Deploy behind a private network, VPN or reverse proxy before exposing the backend publicly.
+- JWT authentication protects API routes except `/api/health`, `/api/version`, `/api/auth/login` and webhook receive. Deploy with HTTPS and strong bootstrap admin credentials before exposing the service publicly.
 
 ---
 
 ## `.env` Security
 
-All secrets must be kept in a local `.env` file (never committed to version control).
+All secrets must be kept in local environment files (never committed to version control).
 
 ```bash
 cp .env.example .env
@@ -82,4 +82,4 @@ cp .env.example .env
 # APP_SECRET_KEY, JWT_SECRET_KEY, DATABASE_URL credentials
 ```
 
-The `.env` file is listed in `.gitignore`. Verify it is never staged or committed before pushing.
+For production, copy `.env.production.example` to `.env.production`, replace all placeholders, and verify `git status` never shows real environment files before pushing.

@@ -4,6 +4,24 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.3.0)
+
+| Feature | Details |
+| --- | --- |
+| **Production deployment guide** | Step-by-step VPS deployment with Docker Compose, domain, HTTPS and production checklist |
+| **Caddy reverse proxy** | `Caddyfile` template with automatic HTTPS, security headers and path-based routing |
+| **`docker-compose.prod.yml`** | Separate production compose: Caddy on 80/443, backend/frontend unexposed, PostgreSQL on internal network only |
+| **Container healthchecks** | Healthchecks on all services (backend, frontend, db, Caddy) with `restart: always` |
+| **`.env.production.example`** | Production environment template with all required variables documented |
+| **Backup and restore guide** | PostgreSQL dump/restore commands and cron example |
+| **Update procedure** | Git pull + rebuild + auto-migration documented |
+| **Logs and troubleshooting guide** | Common issues, container exec, log streaming |
+| **`prod-*` Makefile targets** | `prod-up`, `prod-down`, `prod-logs`, `prod-validate` |
+| **Production Config CI** | GitHub Actions workflow validates `docker-compose.prod.yml` and `Caddyfile` syntax |
+| **Enhanced health endpoint** | `/api/health` now reports `database: "ok"/"error"` for observability |
+
+---
+
 ## Completed (v0.2.0)
 
 | Feature | Details |
@@ -37,22 +55,6 @@ These features are implemented, tested and validated in the current MVP.
 | **Test suites** | 109 backend tests, 31 frontend tests — all passing |
 | **Secret masking** | Headers and JSON body fields masked before any DB write; dedicated test coverage |
 | **Demo seed script** | `make seed` populates demo data for screenshots and local exploration |
-
----
-
-## Next (v0.2.0 priorities)
-
-These are the confirmed priorities for the next development cycle, ordered by implementation sequence.
-
-| Feature | Description |
-| --- | --- |
-| **Jobs management UI** | Create, edit, pause and delete jobs directly from the frontend (currently API-only) |
-| **Executions page** | Frontend page listing execution history with filters for status, job and date range |
-| **JWT authentication** | User accounts, login/logout, session tokens and protected API endpoints |
-| **SSRF protection** | Block job URLs targeting private/internal network ranges (loopback, RFC-1918, link-local) in production mode |
-| **Rate limiting** | Per-IP rate limits on the webhook receiver and public API endpoints |
-| **Docker Compose smoke test in CI** | Spin up the full stack in GitHub Actions and verify `/api/health` before merging |
-| **VPS deployment guide** | Step-by-step guide for deploying on a Linux server with nginx and HTTPS |
 
 ---
 

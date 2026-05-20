@@ -1,0 +1,107 @@
+# Production Docker Compose configuration.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Differences from docker-compose.yml (development):
+#   - Caddy reverse proxy handles TLS and routes /api/* to backend
+#   - Backend and frontend are NOT published directly to the host
+#   - PostgreSQL is NOT published outside the internal Docker network
+#   - All services use restart: always
+#   - Healthchecks are defined for all services
+#   - Frontend is built with VITE_API_BASE_URL="" (same-origin via Caddy)
+#
+# Prerequisites:
+#   1. Copy .env.production.example to .env.production and fill in real values
+#   2. Edit Caddyfile — replace "autoflowops.yourdomain.com" with your domain
+#   3. Open ports 80 and 443 on the server firewall
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - autoflowops
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build:
+      context: ./backend
+    restart: always
+    expose:
+      - "8000"
+    env_file:
+      - .env.production
+    environment:
+      APP_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - autoflowops
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ""
+    restart: always
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - autoflowops
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-autoflowops} -d ${POSTGRES_DB:-autoflowops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - autoflowops
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  autoflowops:
+    driver: bridge
