@@ -100,7 +100,14 @@ For a detailed breakdown of each component and data flow, see [docs/architecture
 
 ![Dashboard](docs/assets/screenshots/dashboard.png)
 
-More screenshots: [Webhooks](docs/assets/screenshots/webhooks.png) · [Alerts](docs/assets/screenshots/alerts.png) · [Reports](docs/assets/screenshots/reports.png) · [API docs](docs/assets/screenshots/api-docs.png)
+| &nbsp; | &nbsp; |
+| --- | --- |
+| ![Jobs](docs/assets/screenshots/jobs.png) | ![Job Detail](docs/assets/screenshots/job-detail.png) |
+| ![Executions](docs/assets/screenshots/executions.png) | ![Execution Detail](docs/assets/screenshots/execution-detail.png) |
+| ![Alerts](docs/assets/screenshots/alerts.png) | ![Audit Logs](docs/assets/screenshots/audit-logs.png) |
+| ![Notification Channels](docs/assets/screenshots/notification-channels.png) | ![Reports](docs/assets/screenshots/reports.png) |
+
+More: [Login](docs/assets/screenshots/login.png) · [Job Form](docs/assets/screenshots/job-form.png) · [Webhooks](docs/assets/screenshots/webhooks.png) · [Templates](docs/assets/screenshots/notification-templates.png) · [Escalation](docs/assets/screenshots/escalation-policies.png) · [Users](docs/assets/screenshots/users.png) · [API docs](docs/assets/screenshots/api-docs.png)
 
 ---
 

@@ -6,27 +6,26 @@ Screenshots are stored in `docs/assets/screenshots/`.
 
 ## Current Set
 
-These screenshots exist and are referenced in the README.
+All screenshots captured from the live stack with demo data at 1440 × 900 px.
 
 | Screen | File | Status |
 | --- | --- | --- |
+| Login | `docs/assets/screenshots/login.png` | ✅ Exists |
 | Dashboard | `docs/assets/screenshots/dashboard.png` | ✅ Exists |
-| Webhooks | `docs/assets/screenshots/webhooks.png` | ✅ Exists |
+| Jobs list | `docs/assets/screenshots/jobs.png` | ✅ Exists |
+| Job detail | `docs/assets/screenshots/job-detail.png` | ✅ Exists |
+| Job form (edit) | `docs/assets/screenshots/job-form.png` | ✅ Exists |
+| Executions | `docs/assets/screenshots/executions.png` | ✅ Exists |
+| Execution detail | `docs/assets/screenshots/execution-detail.png` | ✅ Exists |
 | Alerts | `docs/assets/screenshots/alerts.png` | ✅ Exists |
+| Webhooks | `docs/assets/screenshots/webhooks.png` | ✅ Exists |
+| Notification Channels | `docs/assets/screenshots/notification-channels.png` | ✅ Exists |
+| Notification Templates | `docs/assets/screenshots/notification-templates.png` | ✅ Exists |
+| Escalation Policies | `docs/assets/screenshots/escalation-policies.png` | ✅ Exists |
 | Reports | `docs/assets/screenshots/reports.png` | ✅ Exists |
+| Users (admin) | `docs/assets/screenshots/users.png` | ✅ Exists |
+| Audit Logs | `docs/assets/screenshots/audit-logs.png` | ✅ Exists |
 | API docs (Swagger) | `docs/assets/screenshots/api-docs.png` | ✅ Exists |
-
----
-
-## Planned Screenshots (not yet captured)
-
-The following screenshots should be taken once the corresponding frontend pages are implemented.
-
-| Screen | File | Prerequisite |
-| --- | --- | --- |
-| Jobs list | `docs/assets/screenshots/jobs.png` | Jobs management UI (planned) |
-| Job detail + executions | `docs/assets/screenshots/job-detail.png` | Jobs management UI (planned) |
-| Execution detail | `docs/assets/screenshots/execution-detail.png` | Executions page (planned) |
 
 ---
 
@@ -44,19 +43,19 @@ The following screenshots should be taken once the corresponding frontend pages 
    make seed
    ```
 
-3. Open `http://localhost:3000` in a browser.
+3. Run the capture script:
 
-4. Navigate to each page and capture a screenshot at 1440 × 900 px or similar widescreen resolution.
+   ```bash
+   node scripts/capture_screenshots.js
+   ```
 
-5. Save files to `docs/assets/screenshots/` using the filenames in the table above.
-
-6. Screenshots must be generated from demo data only — never from real operational data or secrets.
+   The script authenticates automatically and captures all pages at 1440 × 900 px.
 
 ---
 
 ## Screenshot Guidelines
 
 - Use the demo data seeded by `make seed` — never real tokens, credentials or production data.
-- Crop to the main content area; avoid browser chrome or OS decorations.
+- Capture at 1440 × 900 px viewport (enforced by the script).
 - Keep file sizes reasonable (PNG, under 500 KB each).
 - Retake screenshots after significant UI changes.
