@@ -1,18 +1,21 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { AdminRoute } from './components/layout/AdminRoute'
 import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
 import { AlertsPage } from './pages/AlertsPage'
+import { AuditLogsPage } from './pages/AuditLogsPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { EscalationPoliciesPage } from './pages/EscalationPoliciesPage'
 import { ExecutionDetailPage } from './pages/ExecutionDetailPage'
 import { ExecutionsPage } from './pages/ExecutionsPage'
 import { JobDetailPage } from './pages/JobDetailPage'
 import { JobFormPage } from './pages/JobFormPage'
 import { JobsPage } from './pages/JobsPage'
 import { LoginPage } from './pages/LoginPage'
-import { EscalationPoliciesPage } from './pages/EscalationPoliciesPage'
 import { NotificationChannelsPage } from './pages/NotificationChannelsPage'
 import { NotificationTemplatesPage } from './pages/NotificationTemplatesPage'
 import { ReportsPage } from './pages/ReportsPage'
+import { UsersPage } from './pages/UsersPage'
 import { WebhooksPage } from './pages/WebhooksPage'
 
 export const router = createBrowserRouter(
@@ -42,6 +45,22 @@ export const router = createBrowserRouter(
         { path: 'notification-templates', element: <NotificationTemplatesPage /> },
         { path: 'escalation-policies', element: <EscalationPoliciesPage /> },
         { path: 'reports', element: <ReportsPage /> },
+        {
+          path: 'users',
+          element: (
+            <AdminRoute>
+              <UsersPage />
+            </AdminRoute>
+          ),
+        },
+        {
+          path: 'audit-logs',
+          element: (
+            <AdminRoute>
+              <AuditLogsPage />
+            </AdminRoute>
+          ),
+        },
       ],
     },
     { path: '*', element: <Navigate to="/" replace /> },

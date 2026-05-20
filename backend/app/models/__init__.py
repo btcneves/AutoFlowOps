@@ -1,4 +1,5 @@
 from app.models.alert import Alert
+from app.models.audit_log import AuditLog
 from app.models.base import Base
 from app.models.escalation import EscalationEvent, EscalationPolicy, EscalationStep
 from app.models.execution import Execution
@@ -12,6 +13,7 @@ from app.models.webhook import Webhook, WebhookEvent
 __all__ = [
     "Base",
     "Alert",
+    "AuditLog",
     "EscalationEvent",
     "EscalationPolicy",
     "EscalationStep",

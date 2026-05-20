@@ -611,11 +611,170 @@ Downloads are derived from the saved canonical JSON — historical reports are s
 
 ---
 
+## Users
+
+All endpoints require admin role.
+
+### GET /api/users
+
+Returns all user accounts.
+
+```bash
+curl http://localhost:8000/api/users \
+  -H "Authorization: Bearer <token>"
+```
+
+Response `200 OK` (array of user objects):
+
+```json
+[
+  {
+    "id": "aaaa-1111-...",
+    "email": "admin@example.com",
+    "name": "Admin",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2026-05-20T10:00:00Z",
+    "updated_at": "2026-05-20T10:00:00Z",
+    "last_login_at": "2026-05-20T11:00:00Z"
+  }
+]
+```
+
+`password_hash` is never included in any user response.
+
+### POST /api/users
+
+Creates a new user account.
+
+```bash
+curl -X POST http://localhost:8000/api/users \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ops@example.com", "name": "Ops User", "password": "changeme", "role": "operator"}'
+```
+
+Request body:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `email` | string | Yes | Unique email address |
+| `name` | string | Yes | Display name |
+| `password` | string | Yes | Plain password (bcrypt-hashed on write) |
+| `role` | string | No | `admin`, `operator` or `viewer` (default: `viewer`) |
+
+Response `201 Created`: the created user object.
+
+`409 Conflict` if the email address is already registered. `400` if the role value is invalid.
+
+### PATCH /api/users/{id}
+
+Updates a user's role, active status or name. Admin-only.
+
+```bash
+curl -X PATCH http://localhost:8000/api/users/aaaa-1111-... \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "viewer", "is_active": false}'
+```
+
+Request body (all fields optional):
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `name` | string | New display name |
+| `role` | string | `admin`, `operator` or `viewer` |
+| `is_active` | boolean | Activate or deactivate the account |
+
+`400` if the operation would leave zero active admin accounts.
+
+### POST /api/users/{id}/reset-password
+
+Sets a new password for a user. Admin-only.
+
+```bash
+curl -X POST http://localhost:8000/api/users/aaaa-1111-.../reset-password \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"new_password": "new-secure-pw"}'
+```
+
+Response `200 OK`:
+
+```json
+{"ok": true}
+```
+
+### DELETE /api/users/{id}
+
+Deletes a user account. Admin-only.
+
+```bash
+curl -X DELETE http://localhost:8000/api/users/aaaa-1111-... \
+  -H "Authorization: Bearer <token>"
+```
+
+Response `204 No Content`.
+
+`400` if the operation would delete the last active admin account.
+
+---
+
+## Audit Logs
+
+All endpoints require admin role.
+
+### GET /api/audit-logs
+
+Returns audit log entries, newest first.
+
+```bash
+curl "http://localhost:8000/api/audit-logs?action=job.create&limit=50" \
+  -H "Authorization: Bearer <token>"
+```
+
+Query parameters (all optional):
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `user_id` | UUID | Filter by actor |
+| `action` | string | Filter by action string (exact match) |
+| `resource_type` | string | Filter by resource type |
+| `status` | string | `success` or `failure` |
+| `since` | ISO 8601 datetime | Entries created at or after this timestamp |
+| `until` | ISO 8601 datetime | Entries created before or at this timestamp |
+| `limit` | integer | Maximum results (default: 100, max: 1000) |
+
+Response `200 OK`:
+
+```json
+[
+  {
+    "id": "bbbb-2222-...",
+    "user_id": "aaaa-1111-...",
+    "action": "job.create",
+    "resource_type": "job",
+    "resource_id": "cccc-3333-...",
+    "status": "success",
+    "ip_address": "192.0.2.1",
+    "user_agent": "Mozilla/5.0 ...",
+    "metadata_": {"name": "My Job"},
+    "created_at": "2026-05-20T10:05:00Z"
+  }
+]
+```
+
+Sensitive metadata fields (`password`, `token`, `api_key`, etc.) are replaced with `"[redacted]"` and never returned in responses.
+
+---
+
 ## Error Responses
 
 | Status | Condition |
 | --- | --- |
+| `400 Bad Request` | Last-admin protection triggered; invalid role value |
+| `401 Unauthorized` | Missing or invalid JWT token |
+| `403 Forbidden` | Insufficient role; invalid webhook token; paused webhook |
 | `404 Not Found` | Resource does not exist |
-| `409 Conflict` | Duplicate webhook slug; alert already resolved |
+| `409 Conflict` | Duplicate webhook slug; alert already resolved; duplicate email |
 | `422 Unprocessable Entity` | Invalid request body, invalid report format or `period_start > period_end` |
-| `403 Forbidden` | Invalid webhook token or paused webhook |

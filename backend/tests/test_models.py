@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.models import (
     Alert,
+    AuditLog,
     Base,
     Execution,
     Job,
@@ -65,6 +66,10 @@ def test_notification_delivery_table_name():
     assert NotificationDelivery.__tablename__ == "notification_deliveries"
 
 
+def test_audit_log_table_name():
+    assert AuditLog.__tablename__ == "audit_logs"
+
+
 def test_all_tables_registered():
     table_names = set(Base.metadata.tables.keys())
     expected = {
@@ -81,6 +86,7 @@ def test_all_tables_registered():
         "escalation_policies",
         "escalation_steps",
         "escalation_events",
+        "audit_logs",
     }
     assert expected == table_names
 
@@ -104,6 +110,7 @@ async def test_create_all_tables(sqlite_engine):
         "escalation_policies",
         "escalation_steps",
         "escalation_events",
+        "audit_logs",
     }
 
 
@@ -136,9 +143,21 @@ def test_webhook_has_secret_token_hash():
     assert "slug" in columns
 
 
+def test_audit_log_has_required_columns():
+    columns = {c.name for c in AuditLog.__table__.columns}
+    required = {
+        "id", "user_id", "action", "resource_type", "resource_id",
+        "status", "ip_address", "user_agent", "metadata", "created_at",
+    }
+    assert required.issubset(columns)
+
+
+def test_user_has_last_login_at():
+    columns = {c.name for c in User.__table__.columns}
+    assert "last_login_at" in columns
+
+
 def test_job_can_be_instantiated():
-    # mapped_column(default=...) applies at INSERT, not at Python init;
-    # verify the object can be constructed without error
     job = Job(name="test", url="http://example.com")
     assert job.name == "test"
     assert job.url == "http://example.com"
