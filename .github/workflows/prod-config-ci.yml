@@ -31,6 +31,8 @@ jobs:
           POSTGRES_PASSWORD=ci_placeholder_password
           APP_SECRET_KEY=ci_placeholder_key_64chars_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           DATABASE_URL=postgresql+psycopg://autoflowops:ci_placeholder@db:5432/autoflowops
+          REDIS_URL=redis://redis:6379/0
+          JOB_EXECUTION_MODE=celery
           JWT_SECRET_KEY=ci_placeholder_jwt_64chars_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           ADMIN_EMAIL=admin@autoflowops.local
           ADMIN_PASSWORD=ci_placeholder_admin_password

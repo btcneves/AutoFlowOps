@@ -23,7 +23,7 @@ from app.schemas.report import (
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
-FAILED_STATUSES = {"failure", "error"}
+FAILED_STATUSES = {"failure", "error", "timeout"}
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -87,6 +87,7 @@ async def _build_report_content(
     successes = sum(1 for item in executions if item.status == "success")
     failures = sum(1 for item in executions if item.status in FAILED_STATUSES)
     total_executions = len(executions)
+    terminal_executions = successes + failures
     durations = [
         item.duration_ms for item in executions if item.duration_ms is not None
     ]
@@ -94,8 +95,8 @@ async def _build_report_content(
         round(sum(durations) / len(durations)) if durations else None
     )
     success_rate = (
-        round(successes / total_executions * 100, 1)
-        if total_executions > 0
+        round(successes / terminal_executions * 100, 1)
+        if terminal_executions > 0
         else 0.0
     )
 

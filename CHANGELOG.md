@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-20
+
+### Added
+
+- **Celery worker** — dedicated worker process executes HTTP jobs outside the FastAPI API process
+- **Redis queue** — `REDIS_URL` configures Redis as Celery broker/result backend
+- **Queued executions** — manual and scheduled runs create `queued` execution records before dispatching work
+- **Retrying state** — failed or timed-out attempts can move to `retrying` before Celery schedules the next attempt
+- **Worker containers** — development and production Docker Compose files include Redis and worker services with healthchecks
+- **Worker tests** — backend tests cover enqueue, worker success, final failure alerting and retry state
+- **Release notes** — `docs/release-notes-v0.4.0.md`
+
+### Changed
+
+- `POST /api/jobs/{id}/run` now returns the queued execution immediately in Celery mode
+- APScheduler now dispatches scheduled jobs to the queue instead of executing HTTP calls in the API process
+- Stats and reports treat `timeout` as a failed terminal execution and ignore queued/running/retrying executions for success-rate math
+- Frontend execution filters now include queued, retrying and timeout statuses
+
+### Test Results (v0.4.0)
+
+| Suite | Status |
+| --- | --- |
+| Backend lint (ruff) | Clean |
+| Backend tests (pytest) | 140 passing |
+| Frontend tests (Vitest) | 45 passing |
+| Frontend lint (ESLint) | Clean |
+| Frontend build | Success |
+| Docker Compose build/smoke | Success |
+| Production config validation | Compose and Caddyfile valid |
+
 ## [0.3.0] - 2026-05-20
 
 ### Added

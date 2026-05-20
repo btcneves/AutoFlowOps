@@ -4,6 +4,7 @@ import json
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -102,6 +103,25 @@ async def test_run_job_http_network_error(db_session: AsyncSession) -> None:
     assert execution.duration_ms is not None
 
 
+async def test_run_job_http_timeout(db_session: AsyncSession) -> None:
+    job = _make_job(url="http://slow.example.com/")
+    db_session.add(job)
+    await db_session.flush()
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        inst = AsyncMock()
+        inst.__aenter__ = AsyncMock(return_value=inst)
+        inst.__aexit__ = AsyncMock(return_value=None)
+        inst.request = AsyncMock(side_effect=httpx.TimeoutException("timed out"))
+        mock_cls.return_value = inst
+
+        execution = await run_job_http(job, db_session)
+
+    assert execution.status == "timeout"
+    assert "timed out" in execution.error_message
+    assert execution.duration_ms is not None
+
+
 async def test_run_job_masks_auth_header(db_session: AsyncSession) -> None:
     headers = {
         "Authorization": "Bearer super_secret",
@@ -139,19 +159,12 @@ async def test_run_job_via_api(async_client: AsyncClient) -> None:
     assert create.status_code == 201
     job_id = create.json()["id"]
 
-    mock_resp = _mock_httpx_response(200, "pong", True)
-
-    with patch("httpx.AsyncClient") as mock_cls:
-        inst = AsyncMock()
-        inst.__aenter__ = AsyncMock(return_value=inst)
-        inst.__aexit__ = AsyncMock(return_value=None)
-        inst.request = AsyncMock(return_value=mock_resp)
-        mock_cls.return_value = inst
-
+    with patch("app.worker.tasks.execute_http_job.delay") as delay:
         response = await async_client.post(f"/api/jobs/{job_id}/run")
 
     assert response.status_code == 202
     data = response.json()
-    assert data["status"] == "success"
+    assert data["status"] == "queued"
     assert data["job_id"] == job_id
     assert data["trigger_type"] == "manual"
+    delay.assert_called_once()

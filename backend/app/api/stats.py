@@ -11,7 +11,7 @@ from app.models.job import Job
 from app.schemas.stats import DailyStats, StatsResponse
 
 router = APIRouter()
-FAILED_STATUSES = ("failure", "error")
+FAILED_STATUSES = ("failure", "error", "timeout")
 
 
 @router.get("/stats", response_model=StatsResponse)
@@ -59,9 +59,20 @@ async def get_stats(session: AsyncSession = Depends(get_db)) -> StatsResponse:
         )
     ).scalar_one()
 
+    successes_24h = (
+        await session.execute(
+            select(func.count())
+            .select_from(Execution)
+            .where(
+                Execution.started_at >= since_24h,
+                Execution.status == "success",
+            )
+        )
+    ).scalar_one()
+    terminal_24h = successes_24h + failures_24h
     success_rate_24h = (
-        round((executions_24h - failures_24h) / executions_24h * 100, 1)
-        if executions_24h > 0
+        round(successes_24h / terminal_24h * 100, 1)
+        if terminal_24h > 0
         else 0.0
     )
 
@@ -82,7 +93,7 @@ async def get_stats(session: AsyncSession = Depends(get_db)) -> StatsResponse:
             day_str = started.astimezone(UTC).strftime("%Y-%m-%d")
             if row.status in FAILED_STATUSES:
                 daily[day_str]["failure"] += 1
-            else:
+            elif row.status == "success":
                 daily[day_str]["success"] += 1
 
     daily_stats = []

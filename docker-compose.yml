@@ -12,10 +12,41 @@ services:
       APP_DEBUG: "false"
       FRONTEND_URL: "http://localhost:3000"
       DATABASE_URL: "postgresql+psycopg://autoflowops:autoflowops@db:5432/autoflowops"
+      REDIS_URL: "redis://redis:6379/0"
+      JOB_EXECUTION_MODE: "celery"
       LOG_LEVEL: INFO
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+    command: celery -A app.worker.celery_app worker --loglevel=INFO
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "false"
+      DATABASE_URL: "postgresql+psycopg://autoflowops:autoflowops@db:5432/autoflowops"
+      REDIS_URL: "redis://redis:6379/0"
+      JOB_EXECUTION_MODE: "celery"
+      LOG_LEVEL: INFO
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping -d celery@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   frontend:
@@ -46,11 +77,16 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # redis:
-  #   image: redis:7-alpine
-  #   ports:
-  #     - "6379:6379"
-  #   restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
   postgres_data:

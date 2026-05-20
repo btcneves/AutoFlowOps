@@ -35,6 +35,7 @@ This policy covers vulnerabilities in:
 - The FastAPI backend (`backend/`)
 - The React frontend (`frontend/`)
 - The Docker Compose configuration
+- The Redis/Celery worker queue configuration
 - The dependency chain (transitive dependencies)
 
 Out of scope:
@@ -68,6 +69,7 @@ See [docs/security.md](docs/security.md) for full details, examples and producti
 - **Never commit `.env` or `.env.production` files** — only templates such as `.env.example` and `.env.production.example` are version-controlled.
 - **Webhook secret tokens are stored as SHA-256 hashes**, never in plain text.
 - **Authorization headers are never stored in full** in execution logs.
+- **Redis must stay private** — the production Compose file keeps it on the internal Docker network only.
 - JWT authentication protects API routes except `/api/health`, `/api/version`, `/api/auth/login` and webhook receive. Deploy with HTTPS and strong bootstrap admin credentials before exposing the service publicly.
 
 ---
