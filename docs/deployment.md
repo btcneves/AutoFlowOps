@@ -25,6 +25,7 @@ The backend runs `alembic upgrade head` automatically before starting. Services:
 | Backend API | <http://localhost:8000> |
 | Swagger docs | <http://localhost:8000/docs> |
 | ReDoc | <http://localhost:8000/redoc> |
+| Redis | `localhost:6379` |
 
 ### Verify
 
@@ -53,6 +54,8 @@ Internet
   └─> Caddy (ports 80 / 443, TLS)
         ├─> /api/* → backend:8000  (FastAPI)
         └─> /*     → frontend:3000 (Vite preview)
+              ├─> worker (Celery, internal only)
+              ├─> Redis (internal only)
               └─> PostgreSQL (internal network only, not exposed)
 ```
 
@@ -121,6 +124,7 @@ Key variables to set:
 | `POSTGRES_USER` | `autoflowops` | PostgreSQL username |
 | `POSTGRES_DB` | `autoflowops` | PostgreSQL database name |
 | `DATABASE_URL` | `postgresql+psycopg://autoflowops:<password>@db:5432/autoflowops` | Must match POSTGRES_* values |
+| `REDIS_URL` | `redis://redis:6379/0` | Internal Redis broker/backend URL |
 | `APP_SECRET_KEY` | *(64-char hex)* | General application secret |
 | `JWT_SECRET_KEY` | *(64-char hex)* | Signs JWT tokens — use a different value than APP_SECRET_KEY |
 | `FRONTEND_URL` | `https://autoflowops.yourdomain.com` | Allowed CORS origin |
@@ -152,6 +156,7 @@ On first start, the backend:
 1. Runs `alembic upgrade head` to apply database migrations
 2. Creates the admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 3. Loads scheduled jobs from the database
+4. Starts the worker so queued manual and scheduled jobs can execute
 
 ### 7. Verify
 
@@ -196,6 +201,8 @@ make prod-validate  # Validate docker-compose.prod.yml and Caddyfile syntax
 | `APP_DEBUG` | `false` | No | Keep `false` in production |
 | `APP_SECRET_KEY` | `change-me` | Yes | Replace before any deployment |
 | `DATABASE_URL` | SQLite fallback | Yes | Must use the `db` hostname |
+| `REDIS_URL` | `redis://redis:6379/0` | Yes | Must use the `redis` hostname in Compose |
+| `JOB_EXECUTION_MODE` | `celery` | No | Use `celery` in normal deployments; `inline` is for isolated tests |
 | `FRONTEND_URL` | `http://localhost:3000` | Yes | Allowed CORS origin |
 | `JWT_SECRET_KEY` | `change-me` | Yes | Replace before any deployment |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | No | Token lifetime in minutes |
@@ -283,8 +290,10 @@ docker compose -f docker-compose.prod.yml logs -f
 
 # Specific service
 docker compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f worker
 docker compose -f docker-compose.prod.yml logs -f caddy
 docker compose -f docker-compose.prod.yml logs -f db
+docker compose -f docker-compose.prod.yml logs -f redis
 ```
 
 ### Check container status
@@ -300,6 +309,7 @@ docker compose -f docker-compose.prod.yml ps
 | `502 Bad Gateway` from Caddy | Backend container not healthy | `logs backend` — check for DB connection error or migration failure |
 | TLS certificate not issued | DNS not propagated or port 80 blocked | Verify DNS A record; check firewall |
 | `database: "error"` in `/api/health` | DB container down or credentials mismatch | `logs db`; verify `DATABASE_URL` matches `POSTGRES_*` vars |
+| Manual jobs stay `queued` | Worker or Redis unavailable | `logs worker`; `logs redis`; check `REDIS_URL` |
 | Backend keeps restarting | Migration error on startup | `logs backend`; fix migration, then `docker compose -f docker-compose.prod.yml up -d --build` |
 | `403 Forbidden` on webhook receive | Token mismatch or webhook paused | Check `X-Webhook-Token` header; check webhook status |
 | `429 Too Many Requests` | Rate limit exceeded | Wait a minute or increase `WEBHOOK_RATE_LIMIT_PER_MINUTE` |
@@ -308,7 +318,9 @@ docker compose -f docker-compose.prod.yml ps
 
 ```bash
 docker compose -f docker-compose.prod.yml exec backend sh
+docker compose -f docker-compose.prod.yml exec worker sh
 docker compose -f docker-compose.prod.yml exec db psql -U autoflowops autoflowops
+docker compose -f docker-compose.prod.yml exec redis redis-cli ping
 ```
 
 ---
@@ -323,12 +335,15 @@ Run through this list before exposing the instance to users.
 - [ ] `ADMIN_EMAIL` and `ADMIN_PASSWORD` set to real values (not defaults)
 - [ ] `FRONTEND_URL` set to the public HTTPS domain
 - [ ] `DATABASE_URL` credentials match `POSTGRES_USER` / `POSTGRES_PASSWORD`
+- [ ] `REDIS_URL` is set to `redis://redis:6379/0`
 - [ ] `.env.production` is **not** committed to version control
 - [ ] Caddyfile domain updated (not `yourdomain.com`)
 - [ ] Caddyfile email updated (not `webmaster@yourdomain.com`)
 - [ ] DNS A record points to the server's public IP
 - [ ] Ports 80 and 443 open in the server firewall
 - [ ] Port 5432 (PostgreSQL) **not** exposed publicly (not in `docker-compose.prod.yml`)
+- [ ] Port 6379 (Redis) **not** exposed publicly (not in `docker-compose.prod.yml`)
 - [ ] `curl https://yourdomain.com/api/health` returns `{"status":"ok",...,"database":"ok"}`
+- [ ] Worker healthcheck is passing and manual jobs leave `queued`
 - [ ] First login successful; admin password changed or noted
 - [ ] Backup strategy in place (cron job or manual schedule)

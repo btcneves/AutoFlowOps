@@ -44,7 +44,7 @@ Response `200 OK`:
 
 ```json
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "app": "AutoFlowOps"
 }
 ```
@@ -181,7 +181,7 @@ Response `204 No Content`.
 
 ### POST /api/jobs/{job_id}/run
 
-Trigger a manual execution immediately.
+Queue a manual execution immediately.
 
 ```bash
 curl -X POST http://localhost:8000/api/jobs/550e8400-e29b-41d4-a716-446655440000/run
@@ -191,14 +191,16 @@ Response `202 Accepted`:
 
 ```json
 {
-  "execution_id": "661e8400-e29b-41d4-a716-446655440001",
-  "status": "success",
-  "duration_ms": 243,
-  "response_status_code": 200
+  "id": "661e8400-e29b-41d4-a716-446655440001",
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "trigger_type": "manual",
+  "status": "queued",
+  "duration_ms": null,
+  "response_status_code": null
 }
 ```
 
-If the target responds with an error status or the request fails, the execution is saved with `status: "failure"` and an alert is created.
+The worker updates the same execution to `running`, then to `success`, `failure` or `timeout`. If retries are configured and an attempt fails, the execution is marked `retrying` until the next attempt starts. Alerts are created only after the final failed or timed-out attempt.
 
 ---
 

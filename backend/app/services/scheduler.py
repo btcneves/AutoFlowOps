@@ -36,7 +36,7 @@ def _parse_trigger(schedule_type: str, schedule_expression: str):
 
 async def _run_scheduled_job(job_id_str: str) -> None:
     from app.database import async_session_factory
-    from app.services.http_runner import run_job_http
+    from app.services.job_queue import enqueue_job_execution
 
     job_id = uuid.UUID(job_id_str)
     async with async_session_factory() as session:
@@ -47,7 +47,7 @@ async def _run_scheduled_job(job_id_str: str) -> None:
                 "Skipping scheduled run for job %s (not found or not active)", job_id
             )
             return
-        await run_job_http(job, session, trigger_type="scheduled")
+        await enqueue_job_execution(job, session, trigger_type="scheduled")
 
     aps_job = _scheduler.get_job(job_id_str)
     if aps_job and getattr(aps_job, "next_run_time", None):

@@ -1,6 +1,6 @@
 # Architecture
 
-AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a React frontend and PostgreSQL persistence. The MVP intentionally keeps a minimal runtime: one API process owns the REST API, the APScheduler scheduler and HTTP job execution.
+AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a Celery worker, Redis queue, React frontend and PostgreSQL persistence. The API owns request/response workflows and schedule timing; the worker owns HTTP job execution.
 
 ---
 
@@ -10,9 +10,11 @@ AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a Reac
 | --- | --- |
 | **Frontend** | Browser UI — dashboard, webhooks, alerts and reports |
 | **Backend API** | REST API, request validation, database access and operational workflows |
+| **Celery worker** | Executes queued HTTP jobs, handles retries and records execution results |
+| **Redis** | Celery broker/result backend for manual and scheduled job execution |
 | **PostgreSQL** | Persistent storage for all domain data |
-| **APScheduler** | In-process interval and cron scheduling for active jobs |
-| **HTTP runner** | Executes HTTP jobs with timeout, stores masked request/response data |
+| **APScheduler** | In-process interval and cron timing for active jobs; dispatches work to Redis |
+| **HTTP runner** | Shared execution logic used by the worker: timeout, masking, SSRF guard and alerts |
 
 ---
 
@@ -25,7 +27,8 @@ Browser
               ├─> SQLAlchemy async session
               │     └─> PostgreSQL (port 5432)
               ├─> APScheduler (in-process, background thread)
-              │     └─> HTTP runner
+              │     └─> Redis queue
+              │           └─> Celery worker
               └─> Webhook receiver
 ```
 
@@ -44,10 +47,12 @@ Internet
 Docker network only
   ├─> backend:8000
   ├─> frontend:3000
+  ├─> worker
+  ├─> redis:6379
   └─> db:5432
 ```
 
-`docker-compose.prod.yml` removes direct host port publishing for PostgreSQL, backend and frontend. Caddy terminates TLS, sets security headers and routes traffic by path. The backend health endpoint includes `database: "ok"` or `database: "error"` so container healthchecks and external monitors can distinguish API reachability from database connectivity.
+`docker-compose.prod.yml` removes direct host port publishing for PostgreSQL, Redis, backend, worker and frontend. Caddy terminates TLS, sets security headers and routes traffic by path. The backend health endpoint includes `database: "ok"` or `database: "error"` so container healthchecks and external monitors can distinguish API reachability from database connectivity.
 
 See [docs/deployment.md](deployment.md) for the full VPS deployment guide.
 
@@ -71,7 +76,7 @@ The initial Alembic migration creates these tables:
 
 ## Scheduling Model
 
-The scheduler is loaded at backend startup and persists across the process lifetime.
+The scheduler is loaded at backend startup and persists across the API process lifetime. It does not execute HTTP requests directly; it creates queued execution records and dispatches Celery tasks through Redis.
 
 | Schedule type | Expression format | Example |
 | --- | --- | --- |
@@ -81,7 +86,7 @@ The scheduler is loaded at backend startup and persists across the process lifet
 
 When a job's status changes to `paused` it is removed from the scheduler. When it returns to `active`, it is re-registered with the same expression.
 
-> **Multi-instance note:** The in-process scheduler is designed for a single backend replica. To run multiple backend replicas or heavy job loads, migrate execution to a Celery/Redis worker (see [Roadmap](roadmap.md)).
+> **Multi-instance note:** HTTP execution is handled by workers, but schedule timing still lives in the API process. Run one scheduler-owning API replica until scheduler leadership is externalised.
 
 ---
 
@@ -92,12 +97,16 @@ When a job's status changes to `paused` it is removed from the scheduler. When i
 ```text
 POST /api/jobs/{id}/run
   └─> load job from DB
-        └─> http_runner.run_job_http(job, session)
-              ├─> httpx.AsyncClient.request(method, url, headers, body, timeout)
-              ├─> mask sensitive headers and body fields
-              ├─> create Execution record (status, timings, masked request, response preview)
-              └─> if status == "failure"
-                    └─> create Alert record (severity="error", source_type="job_execution")
+        ├─> create Execution(status="queued", trigger_type="manual")
+        └─> enqueue Celery task in Redis
+              └─> worker loads job + execution
+                    ├─> status="running"
+                    ├─> httpx.AsyncClient.request(method, url, headers, body, timeout)
+                    ├─> mask sensitive headers and body fields
+                    ├─> update Execution with timings, response preview and status
+                    ├─> retry with status="retrying" while attempts remain
+                    └─> on final failure/timeout
+                          └─> create Alert record (severity="error", source_type="job_execution")
 ```
 
 ### Scheduled trigger
@@ -106,10 +115,21 @@ POST /api/jobs/{id}/run
 APScheduler fires _run_scheduled_job(job_id)
   └─> open async DB session
         └─> load job from DB
-              └─> http_runner.run_job_http(job, session)
-                    ├─> (same as manual trigger above)
-                    └─> update job.next_run_at from scheduler
+              ├─> create Execution(status="queued", trigger_type="scheduled")
+              ├─> enqueue Celery task in Redis
+              └─> update job.next_run_at from scheduler
 ```
+
+Execution statuses:
+
+| Status | Meaning |
+| --- | --- |
+| `queued` | API or scheduler created the execution and dispatched it to Redis |
+| `running` | Worker started the HTTP request attempt |
+| `retrying` | Attempt failed and Celery scheduled another attempt |
+| `success` | Final attempt returned a successful HTTP status |
+| `failure` | Final attempt returned an error status or raised a non-timeout exception |
+| `timeout` | Final attempt timed out |
 
 ---
 
@@ -191,15 +211,16 @@ Reports are derived from their saved canonical JSON, so historical reports remai
 | Passwords | bcrypt hashed; plain passwords never stored |
 | SSRF | Private/reserved IP ranges blocked by default before any HTTP job executes |
 | Rate limiting | In-memory per-IP rate limiter on the webhook receiver |
+| Queue | Redis is internal to Docker networks; job payloads reference database IDs, not raw secrets |
 
 See [docs/security.md](security.md) for the full masking reference.
 
 ---
 
-## Known Boundaries (v0.3.0)
+## Known Boundaries (v0.4.0)
 
-- **In-process scheduler.** APScheduler runs inside the backend process. Best suited to a single replica deployment.
-- **One request per execution.** Retry settings are persisted for future worker behavior; the current HTTP runner performs one request per execution.
+- **In-process scheduler.** APScheduler still runs inside the backend process. Run one scheduler-owning API replica.
+- **Worker retries are per execution.** A queued execution is updated through retry attempts rather than creating one execution row per attempt.
 - **In-process rate limiter.** The rate limiter resets on backend restart and is not shared across replicas. Replace with a Redis-backed implementation for HA deployments.
 - **No refresh tokens.** JWT access tokens expire after `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` with no renewal mechanism; users must re-authenticate.
 - **Reports are not recomputed.** Downloads are generated from the saved canonical JSON, not recalculated from live data.
@@ -212,10 +233,10 @@ The MVP architecture is intentionally simple. Planned improvements include:
 
 ```text
 backend/
-  ├─> existing REST API process
-  └─> [future] Celery worker process
-        └─> Redis broker
-              └─> task queue (job execution, heavy processing)
+  ├─> REST API process
+  ├─> Celery worker process
+  └─> Redis broker
+        └─> task queue (job execution, future heavy processing)
 
 frontend/
   └─> [future] WebSocket connection for real-time execution logs
