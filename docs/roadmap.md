@@ -4,38 +4,6 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
-## Completed (v0.3.0)
-
-| Feature | Details |
-| --- | --- |
-| **Production deployment guide** | Step-by-step VPS deployment with Docker Compose, domain, HTTPS and production checklist |
-| **Caddy reverse proxy** | `Caddyfile` template with automatic HTTPS, security headers and path-based routing |
-| **`docker-compose.prod.yml`** | Separate production compose: Caddy on 80/443, backend/frontend unexposed, PostgreSQL on internal network only |
-| **Container healthchecks** | Healthchecks on all services (backend, frontend, db, Caddy) with `restart: always` |
-| **`.env.production.example`** | Production environment template with all required variables documented |
-| **Backup and restore guide** | PostgreSQL dump/restore commands and cron example |
-| **Update procedure** | Git pull + rebuild + auto-migration documented |
-| **Logs and troubleshooting guide** | Common issues, container exec, log streaming |
-| **`prod-*` Makefile targets** | `prod-up`, `prod-down`, `prod-logs`, `prod-validate` |
-| **Production Config CI** | GitHub Actions workflow validates `docker-compose.prod.yml` and `Caddyfile` syntax |
-| **Enhanced health endpoint** | `/api/health` now reports `database: "ok"/"error"` for observability |
-
----
-
-## Completed (v0.4.0)
-
-| Feature | Details |
-| --- | --- |
-| **Celery worker** | Dedicated worker process executes HTTP jobs outside the API process |
-| **Redis queue** | Redis broker/result backend configured with `REDIS_URL` |
-| **Queued manual runs** | `POST /api/jobs/{id}/run` creates a `queued` execution and dispatches a Celery task |
-| **Queued scheduled runs** | APScheduler keeps schedule timing but dispatches work to the queue |
-| **Retry states** | Executions can move through `queued`, `running`, `retrying`, `success`, `failure` and `timeout` |
-| **Worker healthchecks** | Development and production Compose files include Redis and worker healthchecks |
-| **Worker tests** | Backend tests cover enqueue, worker execution, final failure alerts and retrying state |
-
----
-
 ## Completed (v0.6.0)
 
 | Feature | Details |
@@ -61,6 +29,38 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 | **Delivery history** | Notification delivery records store success/failure, channel metadata, timestamps and masked errors |
 | **Secret masking** | API responses and UI show masked channel configuration; delivery errors are scrubbed before persistence |
 | **Notification tests** | Backend tests cover channel CRUD, test sends, alert dispatch and masked failures; frontend tests cover the channels page |
+
+---
+
+## Completed (v0.4.0)
+
+| Feature | Details |
+| --- | --- |
+| **Celery worker** | Dedicated worker process executes HTTP jobs outside the API process |
+| **Redis queue** | Redis broker/result backend configured with `REDIS_URL` |
+| **Queued manual runs** | `POST /api/jobs/{id}/run` creates a `queued` execution and dispatches a Celery task |
+| **Queued scheduled runs** | APScheduler keeps schedule timing but dispatches work to the queue |
+| **Retry states** | Executions can move through `queued`, `running`, `retrying`, `success`, `failure` and `timeout` |
+| **Worker healthchecks** | Development and production Compose files include Redis and worker healthchecks |
+| **Worker tests** | Backend tests cover enqueue, worker execution, final failure alerts and retrying state |
+
+---
+
+## Completed (v0.3.0)
+
+| Feature | Details |
+| --- | --- |
+| **Production deployment guide** | Step-by-step VPS deployment with Docker Compose, domain, HTTPS and production checklist |
+| **Caddy reverse proxy** | `Caddyfile` template with automatic HTTPS, security headers and path-based routing |
+| **`docker-compose.prod.yml`** | Separate production compose: Caddy on 80/443, backend/frontend unexposed, PostgreSQL on internal network only |
+| **Container healthchecks** | Healthchecks on all services (backend, frontend, db, Caddy) with `restart: always` |
+| **`.env.production.example`** | Production environment template with all required variables documented |
+| **Backup and restore guide** | PostgreSQL dump/restore commands and cron example |
+| **Update procedure** | Git pull + rebuild + auto-migration documented |
+| **Logs and troubleshooting guide** | Common issues, container exec, log streaming |
+| **`prod-*` Makefile targets** | `prod-up`, `prod-down`, `prod-logs`, `prod-validate` |
+| **Production Config CI** | GitHub Actions workflow validates `docker-compose.prod.yml` and `Caddyfile` syntax |
+| **Enhanced health endpoint** | `/api/health` now reports `database: "ok"/"error"` for observability |
 
 ---
 
