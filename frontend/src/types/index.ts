@@ -56,6 +56,8 @@ export type NotificationChannelType =
   | 'telegram_message'
   | 'smtp_email'
   | 'custom_webhook'
+  | 'pagerduty'
+  | 'opsgenie'
 export type NotificationChannelStatus = 'active' | 'paused'
 
 export interface NotificationChannelRead {
@@ -112,7 +114,7 @@ export interface WebhookEventRead {
   error_message: string | null
 }
 
-export type ReportFormat = 'json' | 'markdown' | 'csv'
+export type ReportFormat = 'json' | 'markdown' | 'csv' | 'pdf'
 
 export interface ReportGenerateRequest {
   name?: string
@@ -298,6 +300,38 @@ export interface UserUpdatePayload {
   name?: string
   role?: UserRole
   is_active?: boolean
+}
+
+// Workspaces
+export interface WorkspaceRead {
+  id: string
+  name: string
+  slug: string
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface WorkspaceCreate {
+  name: string
+  slug: string
+}
+
+export interface WorkspaceUpdate {
+  name?: string
+}
+
+export interface WorkspaceMemberRead {
+  id: string
+  workspace_id: string
+  user_id: string
+  role: string
+  created_at: string
+}
+
+export interface WorkspaceMemberCreate {
+  user_id: string
+  role?: string
 }
 
 // Audit logs

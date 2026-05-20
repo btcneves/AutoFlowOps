@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -12,6 +12,9 @@ class Alert(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, default=uuid.uuid4
+    )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL")
     )
     title: Mapped[str] = mapped_column(String(255))
     message: Mapped[str] = mapped_column(Text)

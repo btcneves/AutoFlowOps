@@ -17,6 +17,7 @@ import { NotificationTemplatesPage } from './pages/NotificationTemplatesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { UsersPage } from './pages/UsersPage'
 import { WebhooksPage } from './pages/WebhooksPage'
+import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
 
 export const router = createBrowserRouter(
   [
@@ -58,6 +59,14 @@ export const router = createBrowserRouter(
           element: (
             <AdminRoute>
               <AuditLogsPage />
+            </AdminRoute>
+          ),
+        },
+        {
+          path: 'workspaces',
+          element: (
+            <AdminRoute>
+              <WorkspaceSettingsPage />
             </AdminRoute>
           ),
         },

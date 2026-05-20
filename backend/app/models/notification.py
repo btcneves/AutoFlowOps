@@ -11,6 +11,9 @@ class NotificationChannel(Base):
     __tablename__ = "notification_channels"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL")
+    )
     name: Mapped[str] = mapped_column(String(255))
     type: Mapped[str] = mapped_column(String(50))
     status: Mapped[str] = mapped_column(String(50), default="active")

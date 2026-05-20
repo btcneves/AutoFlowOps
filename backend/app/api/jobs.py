@@ -6,9 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_operator
+from app.dependencies import get_active_workspace, get_current_user, require_operator
 from app.models.job import Job
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.execution import ExecutionRead
 from app.schemas.job import JobCreate, JobRead, JobUpdate
 from app.services.audit import client_ip, log_action
@@ -52,6 +53,7 @@ async def create_job(
     request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_operator),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> JobRead:
     job = Job(
         name=payload.name,
@@ -67,6 +69,7 @@ async def create_job(
         retry_count=payload.retry_count,
         retry_delay_seconds=payload.retry_delay_seconds,
         alert_on_failure=payload.alert_on_failure,
+        workspace_id=workspace.id if workspace else None,
     )
     session.add(job)
     await session.flush()
@@ -94,8 +97,12 @@ async def create_job(
 async def list_jobs(
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[JobRead]:
-    result = await session.execute(select(Job).order_by(Job.created_at.desc()))
+    stmt = select(Job).order_by(Job.created_at.desc())
+    if workspace is not None:
+        stmt = stmt.where(Job.workspace_id == workspace.id)
+    result = await session.execute(stmt)
     jobs = result.scalars().all()
     return [_job_to_read(j) for j in jobs]
 

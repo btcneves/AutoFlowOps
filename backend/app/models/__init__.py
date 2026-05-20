@@ -9,6 +9,7 @@ from app.models.notification_template import NotificationTemplate
 from app.models.report import Report
 from app.models.user import User
 from app.models.webhook import Webhook, WebhookEvent
+from app.models.workspace import Workspace, WorkspaceMembership
 
 __all__ = [
     "Base",
@@ -26,4 +27,6 @@ __all__ = [
     "User",
     "Webhook",
     "WebhookEvent",
+    "Workspace",
+    "WorkspaceMembership",
 ]

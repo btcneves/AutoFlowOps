@@ -67,6 +67,10 @@ function ChannelForm({
   const [smtpTo, setSmtpTo] = useState('')
   const [smtpTls, setSmtpTls] = useState(true)
   const [smtpSsl, setSmtpSsl] = useState(false)
+  const [pdRoutingKey, setPdRoutingKey] = useState('')
+  const [opsApiKey, setOpsApiKey] = useState('')
+  const [opsRegion, setOpsRegion] = useState<'us' | 'eu'>('us')
+  const [opsResponders, setOpsResponders] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const isPending = create.isPending || update.isPending
@@ -98,6 +102,18 @@ function ChannelForm({
         headers = JSON.parse(customHeaders) as Record<string, string>
       }
       return { url: customUrl, method: 'POST', headers }
+    }
+    if (type === 'pagerduty') {
+      if (!pdRoutingKey) return null
+      return { routing_key: pdRoutingKey }
+    }
+    if (type === 'opsgenie') {
+      if (!opsApiKey) return null
+      const result: Record<string, unknown> = { api_key: opsApiKey, region: opsRegion }
+      if (opsResponders.trim()) {
+        result.responders = JSON.parse(opsResponders) as unknown[]
+      }
+      return result
     }
     if (!smtpHost || !smtpPort || !smtpFrom || !smtpTo) return null
     return {
@@ -165,6 +181,8 @@ function ChannelForm({
             <option value="telegram_message">{t('channels.typeTelegram')}</option>
             <option value="smtp_email">{t('channels.typeSmtp')}</option>
             <option value="custom_webhook">{t('channels.typeCustom')}</option>
+            <option value="pagerduty">{t('channels.typePagerDuty')}</option>
+            <option value="opsgenie">{t('channels.typeOpsGenie')}</option>
           </select>
         </label>
         <label className="text-xs font-medium text-gray-600">
@@ -277,6 +295,52 @@ function ChannelForm({
         </div>
       )}
 
+      {type === 'pagerduty' && (
+        <div className="mt-3">
+          <label className="text-xs font-medium text-gray-600">
+            {t('channels.labelRoutingKey')}
+            <input
+              type="password"
+              value={pdRoutingKey}
+              onChange={(e) => setPdRoutingKey(e.target.value)}
+              placeholder={editing ? t('channels.placeholderKeepRoutingKey') : t('channels.placeholderRoutingKey')}
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+        </div>
+      )}
+
+      {type === 'opsgenie' && (
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <label className="text-xs font-medium text-gray-600">
+            {t('channels.labelApiKey')}
+            <input
+              type="password"
+              value={opsApiKey}
+              onChange={(e) => setOpsApiKey(e.target.value)}
+              placeholder={editing ? t('channels.placeholderKeepApiKey') : t('channels.placeholderApiKey')}
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+          <label className="text-xs font-medium text-gray-600">
+            {t('channels.labelOpsGenieRegion')}
+            <select value={opsRegion} onChange={(e) => setOpsRegion(e.target.value as 'us' | 'eu')} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
+              <option value="us">US</option>
+              <option value="eu">EU</option>
+            </select>
+          </label>
+          <label className="text-xs font-medium text-gray-600">
+            {t('channels.labelResponders')}
+            <input
+              value={opsResponders}
+              onChange={(e) => setOpsResponders(e.target.value)}
+              placeholder={t('channels.placeholderResponders')}
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+        </div>
+      )}
+
       {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
       <button disabled={isPending} className="mt-4 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
         {editing ? t('channels.saveChannel') : t('channels.createChannel')}
@@ -305,6 +369,8 @@ function ChannelRow({
     telegram_message: t('channels.typeTelegram'),
     smtp_email: t('channels.typeSmtp'),
     custom_webhook: t('channels.typeCustom'),
+    pagerduty: t('channels.typePagerDuty'),
+    opsgenie: t('channels.typeOpsGenie'),
   }
 
   return (

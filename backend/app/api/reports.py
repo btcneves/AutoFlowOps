@@ -3,7 +3,7 @@ import json
 import uuid
 from collections import Counter
 from datetime import datetime
-from io import StringIO
+from io import BytesIO, StringIO
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -11,12 +11,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_operator
+from app.dependencies import get_active_workspace, get_current_user, require_operator
 from app.models.alert import Alert
 from app.models.execution import Execution
 from app.models.job import Job
 from app.models.report import Report
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.report import (
     ReportGenerateRequest,
     ReportRead,
@@ -263,12 +264,90 @@ def _content_to_csv(content: dict[str, Any]) -> str:
     return output.getvalue()
 
 
+def _content_to_pdf(content: dict[str, Any]) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        leftMargin=2 * cm, rightMargin=2 * cm,
+        topMargin=2 * cm, bottomMargin=2 * cm,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    period = content.get("period", {})
+    summary = content.get("summary", {})
+    top_failed_jobs = content.get("top_failed_jobs") or []
+    alerts = content.get("alerts") or []
+    recommendations = content.get("recommendations") or []
+
+    story.append(Paragraph("AutoFlowOps Operational Report", styles["Title"]))
+    story.append(Spacer(1, 0.3 * cm))
+    period_text = f"Period: {period.get('start', '-')} → {period.get('end', '-')}"
+    story.append(Paragraph(period_text, styles["Normal"]))
+    story.append(Spacer(1, 0.5 * cm))
+
+    story.append(Paragraph("Summary", styles["Heading2"]))
+    for label, key in [
+        ("Total jobs", "total_jobs"),
+        ("Executions", "executions"),
+        ("Successes", "successes"),
+        ("Failures", "failures"),
+        ("Success rate", "success_rate"),
+        ("Average duration (ms)", "average_duration_ms"),
+        ("Alerts", "alerts"),
+    ]:
+        value = summary.get(key, 0)
+        if key == "success_rate":
+            value = f"{value}%"
+        story.append(Paragraph(f"• {label}: {value}", styles["Normal"]))
+    story.append(Spacer(1, 0.5 * cm))
+
+    story.append(Paragraph("Top Failed Jobs", styles["Heading2"]))
+    if top_failed_jobs:
+        for item in top_failed_jobs:
+            if isinstance(item, dict):
+                job_text = (
+                    f"• {item.get('job_name', 'Unknown')}: "
+                    f"{item.get('failures', 0)} failures"
+                )
+                story.append(Paragraph(job_text, styles["Normal"]))
+    else:
+        story.append(Paragraph("• No failed jobs in this period.", styles["Normal"]))
+    story.append(Spacer(1, 0.5 * cm))
+
+    story.append(Paragraph("Alerts", styles["Heading2"]))
+    if alerts:
+        for item in alerts:
+            if isinstance(item, dict):
+                alert_text = (
+                    f"• [{item.get('severity', '-')}] "
+                    f"{item.get('title', '-')} ({item.get('status', '-')})"
+                )
+                story.append(Paragraph(alert_text, styles["Normal"]))
+    else:
+        story.append(Paragraph("• No alerts in this period.", styles["Normal"]))
+    story.append(Spacer(1, 0.5 * cm))
+
+    story.append(Paragraph("Recommendations", styles["Heading2"]))
+    for item in recommendations:
+        story.append(Paragraph(f"• {item}", styles["Normal"]))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
 @router.post("/generate", response_model=ReportRead, status_code=201)
 async def generate_report(
     payload: ReportGenerateRequest,
     request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_operator),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> ReportRead:
     content = await _build_report_content(
         session=session,
@@ -285,6 +364,7 @@ async def generate_report(
         period_start=payload.period_start,
         period_end=payload.period_end,
         content=json.dumps(content, sort_keys=True),
+        workspace_id=workspace.id if workspace else None,
     )
     session.add(report)
     await session.flush()
@@ -307,8 +387,12 @@ async def generate_report(
 async def list_reports(
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[ReportSummaryRead]:
-    result = await session.execute(select(Report).order_by(Report.created_at.desc()))
+    stmt = select(Report).order_by(Report.created_at.desc())
+    if workspace is not None:
+        stmt = stmt.where(Report.workspace_id == workspace.id)
+    result = await session.execute(stmt)
     return [ReportSummaryRead.model_validate(item) for item in result.scalars().all()]
 
 
@@ -325,7 +409,7 @@ async def get_report(
 @router.get("/{report_id}/download")
 async def download_report(
     report_id: uuid.UUID,
-    format: Literal["json", "markdown", "csv"] = "json",
+    format: Literal["json", "markdown", "csv", "pdf"] = "json",
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> Response:
@@ -333,13 +417,17 @@ async def download_report(
     content = _load_content(report)
 
     if format == "markdown":
-        body = _content_to_markdown(content)
+        body: str | bytes = _content_to_markdown(content)
         media_type = "text/markdown"
         extension = "md"
     elif format == "csv":
         body = _content_to_csv(content)
         media_type = "text/csv"
         extension = "csv"
+    elif format == "pdf":
+        body = _content_to_pdf(content)
+        media_type = "application/pdf"
+        extension = "pdf"
     else:
         body = json.dumps(content, indent=2, sort_keys=True)
         media_type = "application/json"

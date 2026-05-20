@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import { LanguageSelector } from '../ui/LanguageSelector'
+import { WorkspaceSelector } from '../ui/WorkspaceSelector'
 
 export function Sidebar() {
   const { t } = useTranslation()
@@ -23,6 +24,7 @@ export function Sidebar() {
   const adminNavItems = [
     { to: '/users', label: t('nav.users') },
     { to: '/audit-logs', label: t('nav.auditLogs') },
+    { to: '/workspaces', label: t('nav.workspaces') },
   ]
 
   function handleLogout() {
@@ -68,6 +70,7 @@ export function Sidebar() {
           <div className="mt-3">
             <LanguageSelector />
           </div>
+          <WorkspaceSelector />
         </div>
       )}
     </aside>

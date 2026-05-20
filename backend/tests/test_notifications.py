@@ -275,6 +275,126 @@ async def test_dispatch_alert_notifications_records_masked_failure(
     assert "***" in (delivery.error_message or "")
 
 
+async def test_create_pagerduty_channel_masks_routing_key(
+    async_client: AsyncClient,
+) -> None:
+    r = await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "Ops PagerDuty",
+            "type": "pagerduty",
+            "config": {"routing_key": "r1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6"},
+        },
+    )
+    assert r.status_code == 201
+    data = r.json()
+    assert data["type"] == "pagerduty"
+    assert "r1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6" not in str(data)
+    assert data["config_masked"]["routing_key"] == "***"
+
+
+async def test_create_opsgenie_channel_masks_api_key(
+    async_client: AsyncClient,
+) -> None:
+    r = await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "Ops OpsGenie",
+            "type": "opsgenie",
+            "config": {"api_key": "og-secret-key-abc123", "region": "eu"},
+        },
+    )
+    assert r.status_code == 201
+    data = r.json()
+    assert data["type"] == "opsgenie"
+    assert "og-secret-key-abc123" not in str(data)
+    assert data["config_masked"]["api_key"] == "***"
+    assert data["config_masked"]["region"] == "eu"
+
+
+async def test_send_pagerduty_channel_success(
+    async_client: AsyncClient,
+    monkeypatch,
+) -> None:
+    captured: dict = {}
+
+    async def fake_send(channel_type, config, payload):
+        assert channel_type == "pagerduty"
+        captured["routing_key"] = config["routing_key"]
+
+    monkeypatch.setattr("app.services.notifications._send_channel", fake_send)
+
+    created = await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "PD test",
+            "type": "pagerduty",
+            "config": {"routing_key": "rk-test-key"},
+        },
+    )
+    channel_id = created.json()["id"]
+    r = await async_client.post(f"/api/notification-channels/{channel_id}/test")
+    assert r.status_code == 200
+    assert r.json()["delivery"]["status"] == "success"
+    assert captured["routing_key"] == "rk-test-key"
+
+
+async def test_send_opsgenie_channel_success(
+    async_client: AsyncClient,
+    monkeypatch,
+) -> None:
+    captured: dict = {}
+
+    async def fake_send(channel_type, config, payload):
+        assert channel_type == "opsgenie"
+        captured["api_key"] = config["api_key"]
+        captured["region"] = config.get("region")
+
+    monkeypatch.setattr("app.services.notifications._send_channel", fake_send)
+
+    created = await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "OG test",
+            "type": "opsgenie",
+            "config": {"api_key": "og-key", "region": "us"},
+        },
+    )
+    channel_id = created.json()["id"]
+    r = await async_client.post(f"/api/notification-channels/{channel_id}/test")
+    assert r.status_code == 200
+    assert r.json()["delivery"]["status"] == "success"
+    assert captured["api_key"] == "og-key"
+
+
+async def test_opsgenie_invalid_region_rejected(
+    async_client: AsyncClient,
+) -> None:
+    r = await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "OG bad region",
+            "type": "opsgenie",
+            "config": {"api_key": "key", "region": "invalid"},
+        },
+    )
+    assert r.status_code == 422
+
+
+async def test_pagerduty_missing_routing_key_rejected(
+    async_client: AsyncClient,
+) -> None:
+    r = await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "PD no key",
+            "type": "pagerduty",
+            "config": {},
+        },
+    )
+    assert r.status_code == 422
+
+
 async def test_invalid_webhook_token_creates_notification_delivery(
     async_client: AsyncClient,
     monkeypatch,

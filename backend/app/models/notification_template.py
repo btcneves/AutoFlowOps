@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -11,6 +11,9 @@ class NotificationTemplate(Base):
     __tablename__ = "notification_templates"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL")
+    )
     name: Mapped[str] = mapped_column(String(255))
     # None means this template applies to all severities (catch-all)
     severity_filter: Mapped[str | None] = mapped_column(String(50))

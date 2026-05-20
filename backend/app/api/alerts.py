@@ -6,9 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_operator
+from app.dependencies import get_active_workspace, get_current_user, require_operator
 from app.models.alert import Alert
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.alert import AlertRead
 from app.services.audit import client_ip, log_action
 
@@ -28,10 +29,13 @@ async def list_alerts(
     status: str | None = Query(default=None),
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[AlertRead]:
     stmt = select(Alert).order_by(Alert.created_at.desc())
     if status is not None:
         stmt = stmt.where(Alert.status == status)
+    if workspace is not None:
+        stmt = stmt.where(Alert.workspace_id == workspace.id)
     result = await session.execute(stmt)
     return [AlertRead.model_validate(a) for a in result.scalars().all()]
 

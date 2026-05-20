@@ -5,9 +5,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_admin, require_operator
+from app.dependencies import (
+    get_active_workspace,
+    get_current_user,
+    require_admin,
+    require_operator,
+)
 from app.models.notification import NotificationChannel, NotificationDelivery
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.notification import (
     NotificationChannelCreate,
     NotificationChannelRead,
@@ -71,10 +77,12 @@ async def create_channel(
 async def list_channels(
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[NotificationChannelRead]:
-    result = await session.execute(
-        select(NotificationChannel).order_by(NotificationChannel.created_at.desc())
-    )
+    stmt = select(NotificationChannel).order_by(NotificationChannel.created_at.desc())
+    if workspace is not None:
+        stmt = stmt.where(NotificationChannel.workspace_id == workspace.id)
+    result = await session.execute(stmt)
     return [channel_to_read(channel) for channel in result.scalars().all()]
 
 

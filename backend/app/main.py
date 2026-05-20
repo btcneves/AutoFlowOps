@@ -17,10 +17,11 @@ from app.database import async_session_factory, engine
 from app.models.base import Base
 from app.services.auth import bootstrap_admin
 from app.services.scheduler import (
-        get_scheduler,
-        load_scheduled_jobs,
-        register_escalation_checker,
-    )
+    get_scheduler,
+    load_scheduled_jobs,
+    register_escalation_checker,
+)
+from app.services.workspace import get_or_create_default_workspace
 
 logging.basicConfig(level=settings.log_level.upper())
 logger = logging.getLogger(__name__)
@@ -50,6 +51,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await bootstrap_admin(session)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not bootstrap admin user: %s", exc)
+
+    try:
+        async with async_session_factory() as session:
+            await get_or_create_default_workspace(session)
+        logger.info("Default workspace ready")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not bootstrap default workspace: %s", exc)
 
     scheduler = get_scheduler()
     try:

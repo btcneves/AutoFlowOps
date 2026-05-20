@@ -87,6 +87,8 @@ def test_all_tables_registered():
         "escalation_steps",
         "escalation_events",
         "audit_logs",
+        "workspaces",
+        "workspace_memberships",
     }
     assert expected == table_names
 
@@ -111,6 +113,8 @@ async def test_create_all_tables(sqlite_engine):
         "escalation_steps",
         "escalation_events",
         "audit_logs",
+        "workspaces",
+        "workspace_memberships",
     }
 
 

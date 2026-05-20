@@ -5,9 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_admin
+from app.dependencies import get_active_workspace, get_current_user, require_admin
 from app.models.notification_template import NotificationTemplate
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.notification_template import (
     NotificationTemplateCreate,
     NotificationTemplateRead,
@@ -65,10 +66,12 @@ async def create_template(
 async def list_templates(
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[NotificationTemplateRead]:
-    result = await session.execute(
-        select(NotificationTemplate).order_by(NotificationTemplate.created_at.desc())
-    )
+    stmt = select(NotificationTemplate).order_by(NotificationTemplate.created_at.desc())
+    if workspace is not None:
+        stmt = stmt.where(NotificationTemplate.workspace_id == workspace.id)
+    result = await session.execute(stmt)
     return [NotificationTemplateRead.model_validate(t) for t in result.scalars().all()]
 
 
