@@ -25,6 +25,8 @@ describe('LoginPage', () => {
       user: null,
       isLoading: false,
       isAuthenticated: false,
+      isAdmin: false,
+      isOperator: false,
       login: vi.fn(),
       logout: vi.fn(),
     })
@@ -44,6 +46,8 @@ describe('LoginPage', () => {
       user: null,
       isLoading: false,
       isAuthenticated: false,
+      isAdmin: false,
+      isOperator: false,
       login: mockLogin,
       logout: vi.fn(),
     })

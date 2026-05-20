@@ -6,11 +6,18 @@ interface AuthState {
   user: UserRead | null
   isLoading: boolean
   isAuthenticated: boolean
+  isAdmin: boolean
+  isOperator: boolean
   login: (payload: LoginRequest) => Promise<void>
   logout: () => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
+
+function roleLevel(role: string): number {
+  const levels: Record<string, number> = { admin: 3, operator: 2, viewer: 1, user: 1 }
+  return levels[role] ?? 0
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserRead | null>(null)
@@ -42,12 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }, [])
 
+  const level = roleLevel(user?.role ?? '')
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
         isAuthenticated: user !== null,
+        isAdmin: level >= 3,
+        isOperator: level >= 2,
         login,
         logout,
       }}

@@ -4,6 +4,30 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.7.0)
+
+| Feature | Details |
+| --- | --- |
+| **RBAC** | Three roles — `admin`, `operator`, `viewer` — enforced server-side on every endpoint via FastAPI dependencies |
+| **Role hierarchy** | `admin` (level 3) ≥ `operator` (level 2) ≥ `viewer` (level 1); `require_admin` and `require_operator` dependencies applied per endpoint |
+| **User management API** | `GET /api/users`, `POST /api/users`, `PATCH /api/users/{id}`, `POST /api/users/{id}/reset-password`, `DELETE /api/users/{id}` — admin only |
+| **Last-admin protection** | Cannot deactivate or delete the last active admin account |
+| **Audit log model** | `audit_logs` table: `user_id`, `action`, `resource_type`, `resource_id`, `status`, `ip_address`, `user_agent`, masked `metadata`, `created_at` |
+| **Audit log API** | `GET /api/audit-logs` with filters (user_id, action, resource_type, status, since, until, limit) — admin only |
+| **Audit coverage** | Login success/failure, jobs CRUD + run, webhooks CRUD + reprocess, alerts ack/resolve, notification channels CRUD + test, templates CRUD, escalation policies CRUD, reports generate, user management |
+| **Sensitive metadata masking** | Passwords, tokens, API keys, webhook URLs and encryption keys scrubbed from audit metadata before persistence |
+| **`last_login_at` tracking** | User model records last successful login timestamp |
+| **Frontend: Users page** | Admin-only page with user table, create form, inline role selector, activate/deactivate, password reset and delete |
+| **Frontend: Audit Logs page** | Admin-only page with filter controls (action, resource type, status, date range) and paginated log table |
+| **Frontend: AdminRoute** | Route guard that redirects non-admins to `/`; non-authenticated users to `/login` |
+| **Frontend: `isAdmin` / `isOperator`** | Computed booleans in `AuthContext`; sidebar hides admin nav items from non-admins |
+| **RBAC tests** | 20 backend tests covering viewer/operator/admin permission boundaries |
+| **Audit log tests** | 5 backend tests: login events, job audit, metadata masking, filter queries |
+| **User management tests** | 9 backend tests: full CRUD, last-admin guard, no `password_hash` exposure |
+| **Frontend tests** | 8 new frontend tests (UsersPage and AuditLogsPage) — total 65 passing |
+
+---
+
 ## Completed (v0.6.0)
 
 | Feature | Details |
@@ -108,12 +132,12 @@ These features are planned but not yet in active development.
 | --- | --- |
 | **Additional notification providers** | PagerDuty, OpsGenie and richer provider-specific delivery options |
 | **Real-time logs** | WebSocket connection for live execution log streaming in the frontend |
-| **RBAC** | Role-based access control — admin, operator and read-only roles |
+| **RBAC** | ~~Delivered in v0.7.0~~ |
 | **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |
 | **PDF reports** | Export operational reports as PDF in addition to JSON, Markdown and CSV |
 | **Multi-workspace** | Namespace isolation for teams or projects within a single instance |
 | **Docker image registry** | Publish versioned images to GitHub Container Registry for direct pull |
-| **Audit log** | Immutable log of resource changes with actor and timestamp |
+| **Audit log** | ~~Delivered in v0.7.0~~ |
 
 ---
 

@@ -24,3 +24,22 @@ class UserRead(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
+    updated_at: datetime
+    last_login_at: datetime | None
+
+
+class UserCreate(BaseModel):
+    email: str
+    name: str
+    password: str
+    role: str = "viewer"
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
+
+
+class PasswordReset(BaseModel):
+    new_password: str

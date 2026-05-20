@@ -28,7 +28,9 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - **Executions** — persistent history with status, timings, response previews and masked secrets
 - **Webhooks** — receive external events, store payloads with token validation, reprocess events
 - **Alerts** — automatic alerts on job and webhook failures, with acknowledge and resolve workflows
-- **Notifications** — send critical alerts to Discord webhooks, SMTP email and custom webhooks
+- **Notifications** — send critical alerts to Discord, Telegram, SMTP email and custom webhooks
+- **Escalation policies** — multi-step escalation with configurable delays per step
+- **Roles** — admin, operator and viewer roles enforced server-side; audit trail of all sensitive actions
 - **Reports** — export operational history as JSON, Markdown or CSV
 - **Dashboard** — real-time metrics: active jobs, executions, failure rate and 7-day chart
 
@@ -44,7 +46,11 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - Webhook receiver with secret token validation (SHA-256)
 - Execution history with masked secrets and response previews
 - Internal alerting system for failed executions
-- External notification channels for critical operational alerts
+- External notification channels for critical operational alerts (Discord, Telegram, SMTP, custom webhooks)
+- Notification templates and multi-step escalation policies
+- Role-based access control (admin / operator / viewer) enforced server-side
+- Audit log of all sensitive operations with actor, resource and masked metadata
+- User management API and frontend (admin-only)
 - Operational reports exportable as JSON, Markdown or CSV
 - One-command startup via Docker Compose
 - GitHub Actions CI for backend and frontend
@@ -194,8 +200,8 @@ make test
 
 | Suite | Tests | Status |
 | --- | --- | --- |
-| Backend | 148 | Passing |
-| Frontend | 49 | Passing |
+| Backend | 209 | Passing |
+| Frontend | 65 | Passing |
 
 ---
 
@@ -294,9 +300,12 @@ autoflowops/
 | Production health checks and config CI | ✅ Done |
 | Celery + Redis worker | ✅ Done |
 | Queued manual and scheduled job execution | ✅ Done |
-| External notifications (Discord, Telegram, email) | Planned |
+| External notifications (Discord, Telegram, email) | ✅ Done |
+| Notification templates + escalation policies | ✅ Done |
+| RBAC (role-based access control) | ✅ Done |
+| Audit log with actor and masked metadata | ✅ Done |
+| User management API and frontend | ✅ Done |
 | Real-time logs via WebSocket | Planned |
-| RBAC (role-based access control) | Planned |
 | Advanced retry policy UI | Planned |
 
 See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.
@@ -308,8 +317,11 @@ See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.
 - Secrets are masked in all logs and stored execution records
 - Webhook tokens are stored as SHA-256 hashes, never in plain text
 - `.env` is never version-controlled; only `.env.example` is committed
-- JWT authentication is required; bootstrap admin credentials are set via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars — change them before deploying
+- JWT authentication required; bootstrap admin credentials set via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars — change them before deploying
+- Role-based access control (admin / operator / viewer) enforced on every write endpoint
+- Audit log records all sensitive operations atomically with actor, IP address and masked metadata
 - SSRF protection blocks job URLs targeting private/internal ranges by default
+- Notification channel credentials encrypted at rest (Fernet AES)
 
 See [SECURITY.md](SECURITY.md) for the vulnerability reporting policy and full masking rules.
 

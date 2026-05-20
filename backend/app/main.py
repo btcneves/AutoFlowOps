@@ -6,10 +6,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+import app.models  # noqa: F401 — ensure all models register with Base.metadata
 from app import __version__
 from app.api.router import router
 from app.config import settings
 from app.database import async_session_factory, engine
+from app.models.base import Base
 from app.services.auth import bootstrap_admin
 from app.services.scheduler import (
         get_scheduler,
@@ -32,6 +34,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Database connection OK")
     except Exception as exc:  # noqa: BLE001
         logger.warning("Database not available at startup: %s", exc)
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema up to date")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not apply schema: %s", exc)
 
     try:
         async with async_session_factory() as session:

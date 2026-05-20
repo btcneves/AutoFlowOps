@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.api import (
     alerts,
+    audit_logs,
     auth,
     escalation_policies,
     executions,
@@ -11,6 +12,7 @@ from app.api import (
     notifications,
     reports,
     stats,
+    users,
     webhook_receiver,
     webhooks,
 )
@@ -34,3 +36,5 @@ router.include_router(notifications.router, dependencies=_auth)
 router.include_router(notification_templates.router, dependencies=_auth)
 router.include_router(escalation_policies.router, dependencies=_auth)
 router.include_router(reports.router, dependencies=_auth)
+router.include_router(users.router, dependencies=_auth)
+router.include_router(audit_logs.router, dependencies=_auth)
