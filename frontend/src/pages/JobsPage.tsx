@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { LiveIndicator } from '../components/ui/LiveIndicator'
 import { useDeleteJob, useJobs, useRunJob } from '../hooks/useJobs'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -12,6 +13,7 @@ function formatDate(iso: string | null): string {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useTranslation()
   const styles: Record<string, string> = {
     active: 'bg-green-100 text-green-700',
     paused: 'bg-yellow-100 text-yellow-700',
@@ -19,12 +21,13 @@ function StatusPill({ status }: { status: string }) {
   const cls = styles[status] ?? 'bg-gray-100 text-gray-600'
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {t(`statusLabel.${status}`, { defaultValue: status.charAt(0).toUpperCase() + status.slice(1) })}
     </span>
   )
 }
 
 function JobRow({ job }: { job: JobRead }) {
+  const { t } = useTranslation()
   const runJob = useRunJob()
   const deleteJob = useDeleteJob()
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -58,9 +61,9 @@ function JobRow({ job }: { job: JobRead }) {
       </td>
       <td className="py-3 pr-4 text-xs text-gray-500">
         {job.schedule_type === 'manual'
-          ? 'Manual'
+          ? t('jobs.scheduleManual')
           : job.schedule_type === 'interval'
-          ? `Every ${job.schedule_expression}s`
+          ? t('jobs.scheduleInterval', { expr: job.schedule_expression })
           : job.schedule_expression}
       </td>
       <td className="py-3 pr-4 text-xs text-gray-500">{formatDate(job.last_run_at)}</td>
@@ -71,13 +74,13 @@ function JobRow({ job }: { job: JobRead }) {
           disabled={runJob.isPending}
           className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 disabled:opacity-50"
         >
-          Run
+          {t('jobs.run')}
         </button>
         <Link
           to={`/jobs/${job.id}/edit`}
           className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
         >
-          Edit
+          {t('jobs.edit')}
         </Link>
         <button
           onClick={handleDelete}
@@ -88,7 +91,7 @@ function JobRow({ job }: { job: JobRead }) {
               : 'text-red-500 hover:bg-red-50'
           }`}
         >
-          {confirmDelete ? 'Confirm?' : 'Delete'}
+          {confirmDelete ? t('jobs.confirmDelete') : t('jobs.delete')}
         </button>
       </td>
     </tr>
@@ -96,6 +99,7 @@ function JobRow({ job }: { job: JobRead }) {
 }
 
 export function JobsPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { lastEvent, status: wsStatus } = useWebSocket()
 
@@ -111,10 +115,8 @@ export function JobsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Jobs</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Scheduled HTTP jobs and manual triggers.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('jobs.title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t('jobs.subtitle')}</p>
         </div>
         <div className="flex items-center gap-4">
           <LiveIndicator status={wsStatus} />
@@ -122,24 +124,24 @@ export function JobsPage() {
             to="/jobs/new"
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            New Job
+            {t('jobs.newJob')}
           </Link>
         </div>
       </div>
 
-      {isLoading && <p className="text-sm text-gray-500">Loading jobs…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('jobs.loading')}</p>}
 
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load jobs. Make sure the API is running.
+          {t('jobs.error')}
         </div>
       )}
 
       {!isLoading && !isError && jobs && jobs.length === 0 && (
         <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
-          <p className="text-sm text-gray-500">No jobs yet.</p>
+          <p className="text-sm text-gray-500">{t('jobs.empty')}</p>
           <Link to="/jobs/new" className="mt-2 inline-block text-sm text-blue-600 hover:underline">
-            Create your first job →
+            {t('jobs.createFirst')}
           </Link>
         </div>
       )}
@@ -149,13 +151,13 @@ export function JobsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pl-4 pr-4">Name</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">Endpoint</th>
-                <th className="py-3 pr-4">Schedule</th>
-                <th className="py-3 pr-4">Last Run</th>
-                <th className="py-3 pr-4">Next Run</th>
-                <th className="py-3 pr-4 text-right">Actions</th>
+                <th className="py-3 pl-4 pr-4">{t('jobs.colName')}</th>
+                <th className="py-3 pr-4">{t('jobs.colStatus')}</th>
+                <th className="py-3 pr-4">{t('jobs.colEndpoint')}</th>
+                <th className="py-3 pr-4">{t('jobs.colSchedule')}</th>
+                <th className="py-3 pr-4">{t('jobs.colLastRun')}</th>
+                <th className="py-3 pr-4">{t('jobs.colNextRun')}</th>
+                <th className="py-3 pr-4 text-right">{t('jobs.colActions', { defaultValue: 'Actions' })}</th>
               </tr>
             </thead>
             <tbody>

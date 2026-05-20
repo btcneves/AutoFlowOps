@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   useCreateUser,
   useDeleteUser,
@@ -17,6 +18,7 @@ function formatDate(iso: string | null): string {
 }
 
 function UserForm({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation()
   const create = useCreateUser()
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -28,7 +30,7 @@ function UserForm({ onDone }: { onDone: () => void }) {
     e.preventDefault()
     setError(null)
     if (!email.trim() || !name.trim() || !password) {
-      setError('Email, name and password are required.')
+      setError(t('users.errorRequired'))
       return
     }
     try {
@@ -44,10 +46,10 @@ function UserForm({ onDone }: { onDone: () => void }) {
       onSubmit={handleSubmit}
       className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
     >
-      <h2 className="mb-3 text-sm font-semibold text-gray-900">New user</h2>
+      <h2 className="mb-3 text-sm font-semibold text-gray-900">{t('users.formTitle')}</h2>
       <div className="grid gap-3 md:grid-cols-4">
         <label className="text-xs font-medium text-gray-600">
-          Email
+          {t('users.labelEmail')}
           <input
             type="email"
             value={email}
@@ -56,7 +58,7 @@ function UserForm({ onDone }: { onDone: () => void }) {
           />
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Name
+          {t('users.labelName')}
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -64,7 +66,7 @@ function UserForm({ onDone }: { onDone: () => void }) {
           />
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Password
+          {t('users.labelPassword')}
           <input
             type="password"
             value={password}
@@ -73,16 +75,14 @@ function UserForm({ onDone }: { onDone: () => void }) {
           />
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Role
+          {t('users.labelRole')}
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
             className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
           >
             {ROLE_OPTIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
+              <option key={r} value={r}>{r}</option>
             ))}
           </select>
         </label>
@@ -92,7 +92,7 @@ function UserForm({ onDone }: { onDone: () => void }) {
         disabled={create.isPending}
         className="mt-3 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
       >
-        Create user
+        {t('users.createUser')}
       </button>
     </form>
   )
@@ -105,6 +105,7 @@ function UserRow({
   user: UserRead
   currentUserId: string | undefined
 }) {
+  const { t } = useTranslation()
   const updateUser = useUpdateUser()
   const deleteUser = useDeleteUser()
   const resetPassword = useResetPassword()
@@ -131,7 +132,7 @@ function UserRow({
     e.preventDefault()
     setPwError(null)
     if (!newPw || newPw.length < 6) {
-      setPwError('Password must be at least 6 characters.')
+      setPwError(t('users.errorPwLength'))
       return
     }
     try {
@@ -155,9 +156,7 @@ function UserRow({
           className="rounded border border-gray-300 px-1 py-0.5 text-xs disabled:opacity-50"
         >
           {ROLE_OPTIONS.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
+            <option key={r} value={r}>{r}</option>
           ))}
         </select>
       </td>
@@ -165,7 +164,7 @@ function UserRow({
         <span
           className={`rounded px-2 py-0.5 text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
         >
-          {user.is_active ? 'Active' : 'Inactive'}
+          {user.is_active ? t('users.statusActive') : t('users.statusInactive')}
         </span>
       </td>
       <td className="py-3 pr-4 text-xs text-gray-500">{formatDate(user.last_login_at)}</td>
@@ -176,20 +175,20 @@ function UserRow({
           disabled={isSelf || updateUser.isPending}
           className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
         >
-          {user.is_active ? 'Deactivate' : 'Activate'}
+          {user.is_active ? t('users.deactivate') : t('users.activate')}
         </button>
         <button
           onClick={() => setShowReset(!showReset)}
           className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
         >
-          Reset pw
+          {t('users.resetPw')}
         </button>
         <button
           onClick={() => deleteUser.mutate(user.id)}
           disabled={isSelf || deleteUser.isPending}
           className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
-          Delete
+          {t('users.delete')}
         </button>
       </td>
       {showReset && (
@@ -199,7 +198,7 @@ function UserRow({
               type="password"
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
-              placeholder="New password"
+              placeholder={t('users.newPassword')}
               className="rounded border border-gray-300 px-2 py-1 text-xs"
             />
             <button
@@ -207,7 +206,7 @@ function UserRow({
               disabled={resetPassword.isPending}
               className="rounded bg-blue-600 px-2 py-1 text-xs text-white disabled:opacity-50"
             >
-              Set
+              {t('users.setPw')}
             </button>
             {pwError && <span className="text-xs text-red-600">{pwError}</span>}
           </form>
@@ -218,6 +217,7 @@ function UserRow({
 }
 
 export function UsersPage() {
+  const { t } = useTranslation()
   const { user: currentUser } = useAuth()
   const { data: users, isLoading, isError } = useUsers()
   const [showForm, setShowForm] = useState(false)
@@ -226,25 +226,23 @@ export function UsersPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage user accounts and role assignments.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('users.title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t('users.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700"
         >
-          {showForm ? 'Cancel' : 'New user'}
+          {showForm ? t('users.cancel') : t('users.newUser')}
         </button>
       </div>
 
       {showForm && <UserForm onDone={() => setShowForm(false)} />}
 
-      {isLoading && <p className="text-sm text-gray-500">Loading users…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('users.loading')}</p>}
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load users.
+          {t('users.error')}
         </div>
       )}
       {!isLoading && !isError && users && (
@@ -252,13 +250,13 @@ export function UsersPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Name</th>
-                <th className="py-3 pr-4">Email</th>
-                <th className="py-3 pr-4">Role</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">Last login</th>
-                <th className="py-3 pr-4">Created</th>
-                <th className="py-3 pr-4 text-right">Actions</th>
+                <th className="py-3 pr-4 pl-4">{t('users.colName')}</th>
+                <th className="py-3 pr-4">{t('users.colEmail')}</th>
+                <th className="py-3 pr-4">{t('users.colRole')}</th>
+                <th className="py-3 pr-4">{t('users.colStatus')}</th>
+                <th className="py-3 pr-4">{t('users.colLastLogin')}</th>
+                <th className="py-3 pr-4">{t('users.colCreated')}</th>
+                <th className="py-3 pr-4 text-right">{t('users.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -268,7 +266,7 @@ export function UsersPage() {
             </tbody>
           </table>
           {users.length === 0 && (
-            <p className="py-6 text-center text-sm text-gray-500">No users found.</p>
+            <p className="py-6 text-center text-sm text-gray-500">{t('users.empty')}</p>
           )}
         </div>
       )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useWebhooks } from '../hooks/useWebhooks'
 import type { WebhookRead } from '../types'
 
@@ -14,6 +15,7 @@ function formatDate(iso: string | null): string {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useTranslation()
   const active = status === 'active'
   return (
     <span
@@ -21,12 +23,13 @@ function StatusPill({ status }: { status: string }) {
         active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
       }`}
     >
-      {active ? 'Active' : 'Paused'}
+      {t(`statusLabel.${status}`, { defaultValue: active ? 'Active' : 'Paused' })}
     </span>
   )
 }
 
 function WebhookRow({ webhook }: { webhook: WebhookRead }) {
+  const { t } = useTranslation()
   const url = receiveUrl(webhook.slug)
 
   function copyUrl() {
@@ -53,7 +56,7 @@ function WebhookRow({ webhook }: { webhook: WebhookRead }) {
           className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
           title={url}
         >
-          Copy URL
+          {t('webhooks.copyUrl')}
         </button>
       </td>
     </tr>
@@ -61,29 +64,26 @@ function WebhookRow({ webhook }: { webhook: WebhookRead }) {
 }
 
 export function WebhooksPage() {
+  const { t } = useTranslation()
   const { data: webhooks, isLoading, isError } = useWebhooks()
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Webhooks</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Inbound HTTP endpoints — each receives POST requests and records events.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('webhooks.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('webhooks.subtitle')}</p>
       </div>
 
-      {isLoading && (
-        <p className="text-sm text-gray-500">Loading webhooks…</p>
-      )}
+      {isLoading && <p className="text-sm text-gray-500">{t('webhooks.loading')}</p>}
 
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load webhooks. Make sure the API is running.
+          {t('webhooks.error')}
         </div>
       )}
 
       {!isLoading && !isError && webhooks && webhooks.length === 0 && (
-        <p className="text-sm text-gray-500">No webhooks configured yet.</p>
+        <p className="text-sm text-gray-500">{t('webhooks.empty')}</p>
       )}
 
       {!isLoading && !isError && webhooks && webhooks.length > 0 && (
@@ -91,11 +91,11 @@ export function WebhooksPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Name</th>
-                <th className="py-3 pr-4">Slug</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">Last Received</th>
-                <th className="py-3 pr-4 text-right">Actions</th>
+                <th className="py-3 pr-4 pl-4">{t('webhooks.colName')}</th>
+                <th className="py-3 pr-4">{t('webhooks.colSlug')}</th>
+                <th className="py-3 pr-4">{t('webhooks.colStatus')}</th>
+                <th className="py-3 pr-4">{t('webhooks.colLastReceived')}</th>
+                <th className="py-3 pr-4 text-right">{t('webhooks.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 pl-4">

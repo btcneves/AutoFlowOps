@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { WSStatus } from '../../hooks/useWebSocket'
 
 interface Props {
@@ -5,11 +6,13 @@ interface Props {
 }
 
 export function LiveIndicator({ status }: Props) {
+  const { t } = useTranslation()
+
   if (status === 'open') {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs text-green-600">
         <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-        Live
+        {t('liveIndicator.live')}
       </span>
     )
   }
@@ -17,10 +20,9 @@ export function LiveIndicator({ status }: Props) {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
         <span className="h-2 w-2 rounded-full bg-gray-400" />
-        Connecting…
+        {t('liveIndicator.connecting')}
       </span>
     )
   }
-  // closed or auth_error — render nothing (polling still active)
   return null
 }

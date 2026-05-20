@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   useCreateNotificationTemplate,
   useDeleteNotificationTemplate,
@@ -6,13 +7,6 @@ import {
   useUpdateNotificationTemplate,
 } from '../hooks/useNotificationTemplates'
 import type { NotificationTemplateRead } from '../types'
-
-const SEVERITY_OPTIONS = [
-  { value: '', label: 'All severities (catch-all)' },
-  { value: 'error', label: 'Error' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'info', label: 'Info' },
-]
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString()
@@ -25,6 +19,7 @@ function TemplateForm({
   editing: NotificationTemplateRead | null
   onDone: () => void
 }) {
+  const { t } = useTranslation()
   const create = useCreateNotificationTemplate()
   const update = useUpdateNotificationTemplate()
   const [name, setName] = useState(editing?.name ?? '')
@@ -42,7 +37,7 @@ function TemplateForm({
     event.preventDefault()
     setError(null)
     if (!name.trim()) {
-      setError('Name is required.')
+      setError(t('templates.errorName'))
       return
     }
     const payload = {
@@ -58,6 +53,13 @@ function TemplateForm({
     void mutation.then(onDone).catch((err: Error) => setError(err.message))
   }
 
+  const severityOptions = [
+    { value: '', label: t('templates.severityAll') },
+    { value: 'error', label: t('templates.severityError') },
+    { value: 'warning', label: t('templates.severityWarning') },
+    { value: 'info', label: t('templates.severityInfo') },
+  ]
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -65,7 +67,7 @@ function TemplateForm({
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-900">
-          {editing ? 'Edit template' : 'New template'}
+          {editing ? t('templates.formTitleEdit') : t('templates.formTitleNew')}
         </h2>
         {editing && (
           <button
@@ -73,13 +75,13 @@ function TemplateForm({
             onClick={onDone}
             className="text-xs text-gray-500 hover:text-gray-700"
           >
-            Cancel
+            {t('templates.cancel')}
           </button>
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-xs font-medium text-gray-600">
-          Name
+          {t('templates.labelName')}
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -87,16 +89,14 @@ function TemplateForm({
           />
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Severity filter
+          {t('templates.labelSeverityFilter')}
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
             className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
           >
-            {SEVERITY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+            {severityOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </label>
@@ -106,12 +106,12 @@ function TemplateForm({
             checked={isDefault}
             onChange={(e) => setIsDefault(e.target.checked)}
           />
-          Default template
+          {t('templates.labelDefault')}
         </label>
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <label className="text-xs font-medium text-gray-600">
-          Title template
+          {t('templates.labelTitleTemplate')}
           <input
             value={titleTemplate}
             onChange={(e) => setTitleTemplate(e.target.value)}
@@ -120,7 +120,7 @@ function TemplateForm({
           />
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Body template
+          {t('templates.labelBodyTemplate')}
           <textarea
             value={bodyTemplate}
             onChange={(e) => setBodyTemplate(e.target.value)}
@@ -130,15 +130,13 @@ function TemplateForm({
           />
         </label>
       </div>
-      <p className="mt-2 text-xs text-gray-400">
-        Available variables: {'{title}'}, {'{severity}'}, {'{message}'}, {'{alert_id}'}
-      </p>
+      <p className="mt-2 text-xs text-gray-400">{t('templates.availableVars')}</p>
       {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
       <button
         disabled={isPending}
         className="mt-4 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
       >
-        {editing ? 'Save template' : 'Create template'}
+        {editing ? t('templates.saveTemplate') : t('templates.createTemplate')}
       </button>
     </form>
   )
@@ -151,6 +149,7 @@ function TemplateRow({
   template: NotificationTemplateRead
   onEdit: (t: NotificationTemplateRead) => void
 }) {
+  const { t } = useTranslation()
   const remove = useDeleteNotificationTemplate()
   return (
     <tr className="border-t border-gray-100">
@@ -160,7 +159,7 @@ function TemplateRow({
       </td>
       <td className="py-3 pr-4 text-xs font-mono text-gray-600">{template.title_template}</td>
       <td className="py-3 pr-4 text-xs text-gray-500">
-        {template.is_default ? 'Yes' : '—'}
+        {template.is_default ? t('templates.yes') : '—'}
       </td>
       <td className="py-3 pr-4 text-xs text-gray-500">{formatDate(template.created_at)}</td>
       <td className="py-3 pr-4 text-right space-x-1">
@@ -168,14 +167,14 @@ function TemplateRow({
           onClick={() => onEdit(template)}
           className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
         >
-          Edit
+          {t('templates.edit')}
         </button>
         <button
           onClick={() => remove.mutate(template.id)}
           disabled={remove.isPending}
           className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
-          Delete
+          {t('templates.delete')}
         </button>
       </td>
     </tr>
@@ -183,45 +182,44 @@ function TemplateRow({
 }
 
 export function NotificationTemplatesPage() {
+  const { t } = useTranslation()
   const { data: templates, isLoading, isError } = useNotificationTemplates()
   const [editing, setEditing] = useState<NotificationTemplateRead | null>(null)
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Notification Templates</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Customise the title and body sent for each severity level.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('templates.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('templates.subtitle')}</p>
       </div>
 
       <TemplateForm editing={editing} onDone={() => setEditing(null)} />
 
-      {isLoading && <p className="text-sm text-gray-500">Loading templates…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('templates.loading')}</p>}
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load notification templates. Make sure the API is running.
+          {t('templates.error')}
         </div>
       )}
       {!isLoading && !isError && templates && templates.length === 0 && (
-        <p className="text-sm text-gray-500">No templates configured. Using built-in defaults.</p>
+        <p className="text-sm text-gray-500">{t('templates.empty')}</p>
       )}
       {!isLoading && !isError && templates && templates.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Name</th>
-                <th className="py-3 pr-4">Severity</th>
-                <th className="py-3 pr-4">Title template</th>
-                <th className="py-3 pr-4">Default</th>
-                <th className="py-3 pr-4">Created</th>
-                <th className="py-3 pr-4 text-right">Actions</th>
+                <th className="py-3 pr-4 pl-4">{t('templates.colName')}</th>
+                <th className="py-3 pr-4">{t('templates.colSeverity')}</th>
+                <th className="py-3 pr-4">{t('templates.colTitleTemplate')}</th>
+                <th className="py-3 pr-4">{t('templates.colDefault')}</th>
+                <th className="py-3 pr-4">{t('templates.colCreated')}</th>
+                <th className="py-3 pr-4 text-right">{t('templates.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {templates.map((t) => (
-                <TemplateRow key={t.id} template={t} onEdit={setEditing} />
+              {templates.map((tmpl) => (
+                <TemplateRow key={tmpl.id} template={tmpl} onEdit={setEditing} />
               ))}
             </tbody>
           </table>
