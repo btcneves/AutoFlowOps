@@ -71,18 +71,72 @@ The masking service (`backend/app/services/masking.py`) has a dedicated test sui
 
 ---
 
-## MVP Security Limitations
+## SSRF Protection (v0.2.0)
 
-The following are known limitations of the current MVP. They are intentional scope decisions, not overlooked risks.
+HTTP jobs execute arbitrary URLs configured by the operator. To prevent jobs from
+targeting internal services, AutoFlowOps blocks requests to private and reserved
+address ranges when `ENABLE_SSRF_PROTECTION=true` (the default).
+
+Blocked ranges:
+
+- `127.0.0.0/8` — loopback
+- `0.0.0.0/8` — unspecified
+- `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` — RFC-1918 private
+- `169.254.0.0/16` — link-local (including cloud metadata endpoints)
+- `100.64.0.0/10` — shared address space
+- `::1/128`, `fc00::/7`, `fe80::/10` — IPv6 equivalents
+
+The check is applied both to literal IP addresses and after DNS resolution, to
+prevent bypass via custom DNS records.
+
+Set `ALLOW_PRIVATE_NETWORK_TARGETS=true` only in controlled local development
+environments where you intentionally need to call internal services.
+
+---
+
+## Rate Limiting (v0.2.0)
+
+The webhook receiver (`POST /api/webhooks/{slug}/receive`) is rate-limited
+per-IP and per-slug using an in-memory fixed-window counter.
+
+- Default limit: `WEBHOOK_RATE_LIMIT_PER_MINUTE=60` requests per minute
+- Responses exceeding the limit receive `429 Too Many Requests` with a
+  `Retry-After` header
+
+The current implementation is in-process and resets on backend restart. For
+multi-replica or high-volume deployments, replace `app/services/rate_limiter.py`
+with a Redis-backed implementation.
+
+---
+
+## Authentication (v0.2.0)
+
+All API routes except `/api/health`, `/api/version` and the webhook receiver
+require a valid JWT Bearer token in the `Authorization` header.
+
+- Tokens are issued by `POST /api/auth/login` using email and bcrypt-hashed
+  password verification
+- Passwords are hashed with bcrypt; plain-text passwords are never stored
+- Token expiry is controlled by `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (default: 60)
+- An admin account is bootstrapped from `ADMIN_EMAIL` / `ADMIN_PASSWORD` env
+  vars on first startup; change these values before any deployment
+
+**v0.2.0 limitation:** only a single access token is issued (no refresh tokens,
+no token revocation). For production use, plan for short expiry values and
+change `ADMIN_PASSWORD` immediately after the first login.
+
+---
+
+## Known Limitations (v0.2.0)
 
 | Limitation | Detail |
 | --- | --- |
-| **No authentication** | All API endpoints are open. There are no user accounts, sessions or API keys in the MVP. |
-| **No rate limiting** | The backend does not limit request rates per IP or per endpoint. |
-| **No SSRF protection** | HTTP jobs can target any URL including internal network addresses. Validate job URLs manually in production. |
+| **Rate limiting is in-process** | Resets on restart; not shared across replicas. Replace with Redis-backed limiter for HA deployments. |
+| **No token revocation** | JWT tokens remain valid until expiry. Logout only clears the client-side token. |
+| **No refresh tokens** | Users must re-authenticate when the access token expires. |
 | **Scheduler is in-process** | APScheduler runs inside the backend. A single crashed process stops all scheduled jobs. |
-| **Response preview is truncated** | Only a limited preview of the response body is stored; full responses are not persisted. |
-| **No audit log** | There is no immutable audit trail of who created, modified or deleted resources. |
+| **Response preview is truncated** | Only the first 500 bytes of the response body are stored. |
+| **No audit log** | There is no immutable audit trail of resource changes. |
 
 ---
 

@@ -1,11 +1,15 @@
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.main import app
 from app.models.base import Base
+from app.models.user import User
 from app.services.scheduler import get_scheduler
 
 
@@ -37,13 +41,27 @@ async def db_session(test_engine) -> AsyncSession:
         yield session
 
 
+_FAKE_USER = User(
+    id=uuid.uuid4(),
+    email="test@autoflowops.local",
+    name="Test User",
+    password_hash="irrelevant",
+    role="admin",
+    is_active=True,
+)
+
+
 @pytest.fixture
 async def async_client(db_session: AsyncSession) -> AsyncClient:
     async def override_get_db():
         yield db_session
 
+    async def override_get_current_user():
+        return _FAKE_USER
+
     original = app.dependency_overrides.copy()
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:

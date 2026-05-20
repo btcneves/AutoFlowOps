@@ -4,6 +4,18 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.2.0)
+
+| Feature | Details |
+| --- | --- |
+| **JWT authentication** | Login endpoint, Bootstrap admin, Bearer token validation on all protected routes |
+| **Jobs management UI** | Create, edit, pause, activate, run and delete jobs from the frontend |
+| **Executions UI** | History list with status/job filters, detail view with masked request/response data |
+| **SSRF protection** | Block job URLs targeting private/internal ranges; DNS resolution check; configurable |
+| **Webhook rate limiting** | Per-IP and per-slug in-memory rate limiter; HTTP 429 on excess; configurable limit |
+
+---
+
 ## Completed (v0.1.0)
 
 These features are implemented, tested and validated in the current MVP.

@@ -8,10 +8,12 @@ from datetime import UTC, datetime
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.alert import Alert
 from app.models.execution import Execution
 from app.models.job import Job
 from app.services.masking import mask_sensitive_body, mask_sensitive_headers
+from app.services.ssrf_guard import check_url
 
 
 async def run_job_http(
@@ -19,6 +21,9 @@ async def run_job_http(
     session: AsyncSession,
     trigger_type: str = "manual",
 ) -> Execution:
+    if settings.enable_ssrf_protection and not settings.allow_private_network_targets:
+        check_url(job.url or "")
+
     headers: dict[str, str] = (
         json.loads(job.headers_encrypted) if job.headers_encrypted else {}
     )

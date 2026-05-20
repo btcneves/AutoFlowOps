@@ -24,7 +24,7 @@ Teams and developers often have routines scattered across isolated scripts, spre
 
 AutoFlowOps centralises these routines in a single self-hosted platform:
 
-- **Jobs** — create HTTP jobs via API, run manually or on interval/cron schedules
+- **Jobs** — create, edit and schedule HTTP jobs from the UI or API; run manually or on interval/cron schedules
 - **Executions** — persistent history with status, timings, response previews and masked secrets
 - **Webhooks** — receive external events, store payloads with token validation, reprocess events
 - **Alerts** — automatic alerts on job failures, with acknowledge and resolve workflows
@@ -272,7 +272,11 @@ autoflowops/
 | Internal alerts + acknowledge/resolve | ✅ Done |
 | Reports (JSON, Markdown, CSV) | ✅ Done |
 | Docker Compose + GitHub Actions CI | ✅ Done |
-| Authentication (JWT/session) | Planned |
+| Jobs management UI | ✅ Done |
+| Executions history UI | ✅ Done |
+| Authentication (JWT) | ✅ Done |
+| SSRF protection for HTTP jobs | ✅ Done |
+| Webhook rate limiting | ✅ Done |
 | Celery + Redis worker | Planned |
 | External notifications (Discord, Telegram, email) | Planned |
 | Real-time logs via WebSocket | Planned |
@@ -288,7 +292,8 @@ See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.
 - Secrets are masked in all logs and stored execution records
 - Webhook tokens are stored as SHA-256 hashes, never in plain text
 - `.env` is never version-controlled; only `.env.example` is committed
-- There is no authentication layer in the MVP — deploy behind a private network, VPN or reverse proxy for production use
+- JWT authentication is required; bootstrap admin credentials are set via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars — change them before deploying
+- SSRF protection blocks job URLs targeting private/internal ranges by default
 
 See [SECURITY.md](SECURITY.md) for the vulnerability reporting policy and full masking rules.
 

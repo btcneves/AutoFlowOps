@@ -165,19 +165,21 @@ Reports are derived from their saved canonical JSON, so historical reports remai
 | Secrets in logs | Sensitive headers and JSON body fields masked before any DB write |
 | Webhook tokens | Stored as SHA-256 hashes; plain tokens never persisted |
 | `.env` file | Git-ignored; only `.env.example` is committed |
-| Authentication | None in the MVP — intended for private networks, VPN or reverse proxy setups |
-| SSRF | No explicit blocking in the MVP; validate job URLs before use in production |
+| Authentication | JWT Bearer tokens required on all routes except `/api/health`, `/api/version` and webhook receive |
+| Passwords | bcrypt hashed; plain passwords never stored |
+| SSRF | Private/reserved IP ranges blocked by default before any HTTP job executes |
+| Rate limiting | In-memory per-IP rate limiter on the webhook receiver |
 
 See [docs/security.md](security.md) for the full masking reference.
 
 ---
 
-## Known MVP Boundaries
+## Known Boundaries (v0.2.0)
 
-- **No authentication.** All API endpoints are open. Do not expose the backend publicly without a reverse proxy or network-level access control.
 - **In-process scheduler.** APScheduler runs inside the backend process. Best suited to a single replica deployment.
 - **One request per execution.** Retry settings are persisted for future worker behavior; the current HTTP runner performs one request per execution.
-- **Frontend is API-first.** The dashboard, webhooks, alerts and reports pages are implemented. A jobs management UI (create/edit/list) is planned for a future phase.
+- **In-process rate limiter.** The rate limiter resets on backend restart and is not shared across replicas. Replace with a Redis-backed implementation for HA deployments.
+- **No refresh tokens.** JWT access tokens expire after `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` with no renewal mechanism; users must re-authenticate.
 - **Reports are not recomputed.** Downloads are generated from the saved canonical JSON, not recalculated from live data.
 
 ---
