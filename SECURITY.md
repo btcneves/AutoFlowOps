@@ -24,7 +24,7 @@ We will acknowledge the report within 72 hours and aim to release a fix within 1
 
 | Version | Supported |
 | --- | --- |
-| 0.x (current) | ✅ Yes |
+| 1.x (current) | ✅ Yes |
 
 ---
 

@@ -6,6 +6,7 @@ import {
   useUpdateUser,
   useUsers,
 } from '../hooks/useUsers'
+import { useAuth } from '../contexts/AuthContext'
 import type { UserRead, UserRole } from '../types'
 
 const ROLE_OPTIONS: UserRole[] = ['admin', 'operator', 'viewer']
@@ -217,6 +218,7 @@ function UserRow({
 }
 
 export function UsersPage() {
+  const { user: currentUser } = useAuth()
   const { data: users, isLoading, isError } = useUsers()
   const [showForm, setShowForm] = useState(false)
 
@@ -261,7 +263,7 @@ export function UsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((u) => (
-                <UserRow key={u.id} user={u} currentUserId={undefined} />
+                <UserRow key={u.id} user={u} currentUserId={currentUser?.id} />
               ))}
             </tbody>
           </table>

@@ -128,6 +128,8 @@ controls.
 Notification channels can contain sensitive delivery configuration:
 
 - Discord webhook URLs
+- Slack webhook URLs
+- Telegram bot tokens
 - SMTP usernames and passwords
 - Custom webhook URLs and headers
 
@@ -135,11 +137,10 @@ API responses and the frontend never return full notification secrets. Channel
 configuration is returned as `config_masked`, and delivery error messages are
 scrubbed before they are stored in `notification_deliveries`.
 
-Current limitation: channel credentials must be available to the backend so
-notifications can be sent. They are stored in the database configuration field
-and protected by response masking, database access control and deployment
-hardening. Database-level encryption for notification credentials is planned for
-a future release.
+Channel credentials must be available to the backend so notifications can be
+sent. They are encrypted at rest with Fernet, returned only as masked values,
+and still depend on protecting the configured encryption key, database access
+and backups.
 
 Custom notification webhook targets are checked by the same SSRF guard used by
 HTTP jobs when `ENABLE_SSRF_PROTECTION=true`.

@@ -76,6 +76,30 @@ async def test_admin_can_update_role(
 
 
 @pytest.mark.asyncio
+async def test_cannot_demote_last_active_admin(
+    async_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    admin = await _seed_user(db_session, email="only-admin@test.com", role="admin")
+    response = await async_client.patch(
+        f"/api/users/{admin.id}", json={"role": "operator"}
+    )
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_can_demote_admin_when_another_active_admin_exists(
+    async_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    admin = await _seed_user(db_session, email="admin-a@test.com", role="admin")
+    await _seed_user(db_session, email="admin-b@test.com", role="admin")
+    response = await async_client.patch(
+        f"/api/users/{admin.id}", json={"role": "operator"}
+    )
+    assert response.status_code == 200
+    assert response.json()["role"] == "operator"
+
+
+@pytest.mark.asyncio
 async def test_create_user_invalid_role(async_client: AsyncClient) -> None:
     response = await async_client.post(
         "/api/users",

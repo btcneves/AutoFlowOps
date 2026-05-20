@@ -250,6 +250,8 @@ PATCH /api/alerts/{id}/resolve      → status: "resolved",     resolved_at: now
 Alert(severity="error") is created
   └─> load active notification channels
         ├─> discord_webhook: POST Discord webhook payload
+        ├─> slack_webhook: POST Slack webhook payload
+        ├─> telegram_message: send Telegram Bot API message
         ├─> smtp_email: send text email via SMTP
         └─> custom_webhook: POST standard JSON payload
               └─> create NotificationDelivery(status="success" | "failed")

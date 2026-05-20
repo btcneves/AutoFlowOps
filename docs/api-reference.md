@@ -423,7 +423,7 @@ Response `200 OK`:
 ### POST /api/notification-channels
 
 Create a channel. Supported `type` values are `discord_webhook`,
-`smtp_email` and `custom_webhook`.
+`slack_webhook`, `telegram_message`, `smtp_email` and `custom_webhook`.
 
 Discord webhook:
 
@@ -452,6 +452,31 @@ SMTP email:
     "to_email": "ops@example.com",
     "use_tls": true,
     "use_ssl": false
+  }
+}
+```
+
+Slack webhook:
+
+```json
+{
+  "name": "Ops Slack",
+  "type": "slack_webhook",
+  "config": {
+    "webhook_url": "https://hooks.slack.com/services/..."
+  }
+}
+```
+
+Telegram message:
+
+```json
+{
+  "name": "Ops Telegram",
+  "type": "telegram_message",
+  "config": {
+    "bot_token": "123456789:REPLACE_WITH_TOKEN",
+    "chat_id": "-1001234567890"
   }
 }
 ```

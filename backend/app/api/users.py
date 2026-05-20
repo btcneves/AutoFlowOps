@@ -99,6 +99,21 @@ async def update_user(
             detail=f"role must be one of: {', '.join(sorted(_ALLOWED_ROLES))}",
         )
 
+    if (
+        "role" in updates
+        and updates["role"] != "admin"
+        and user.role == "admin"
+        and user.is_active
+    ):
+        if await _active_admin_count(session) <= 1:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Cannot remove admin role from the last active admin account. "
+                    "Promote another user to admin first."
+                ),
+            )
+
     if updates.get("is_active") is False and user.role == "admin":
         if await _active_admin_count(session) <= 1:
             raise HTTPException(

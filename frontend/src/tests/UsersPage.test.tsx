@@ -11,6 +11,27 @@ vi.mock('../hooks/useUsers', () => ({
   useDeleteUser: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }))
 
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: {
+      id: 'user-001',
+      email: 'admin@autoflowops.local',
+      name: 'Admin',
+      role: 'admin',
+      is_active: true,
+      created_at: '2026-05-20T10:00:00Z',
+      updated_at: '2026-05-20T10:00:00Z',
+      last_login_at: '2026-05-20T11:00:00Z',
+    },
+    isLoading: false,
+    isAuthenticated: true,
+    isAdmin: true,
+    isOperator: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+  })),
+}))
+
 import { useUsers } from '../hooks/useUsers'
 
 const mockUsers = [
