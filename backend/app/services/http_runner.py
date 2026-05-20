@@ -14,6 +14,7 @@ from app.models.alert import Alert
 from app.models.execution import Execution
 from app.models.job import Job
 from app.services.masking import mask_sensitive_body, mask_sensitive_headers
+from app.services.notifications import dispatch_alert_notifications
 from app.services.ssrf_guard import check_url
 
 FAILED_EXECUTION_STATUSES = {"failure", "timeout"}
@@ -134,9 +135,14 @@ async def run_job_http(
         and job.alert_on_failure
         and execution.status in FAILED_EXECUTION_STATUSES
     )
+    alert: Alert | None = None
     if should_alert:
-        session.add(create_failure_alert(job, execution))
+        alert = create_failure_alert(job, execution)
+        session.add(alert)
+        await session.flush()
 
     await session.commit()
+    if alert is not None:
+        await dispatch_alert_notifications(session, alert)
     await session.refresh(execution)
     return execution
