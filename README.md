@@ -8,6 +8,8 @@ AutoFlowOps helps developers and small teams replace fragile manual processes wi
 [![Frontend CI](https://github.com/btcneves/autoflowops/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/btcneves/autoflowops/actions/workflows/frontend-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> [Versão em Português (PT-BR)](README.pt-br.md)
+
 ---
 
 ## The Problem

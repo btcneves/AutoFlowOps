@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { downloadReport } from '../api/reports'
 import { useGenerateReport, useReports } from '../hooks/useReports'
 import type { ReportFormat, ReportSummaryRead } from '../types'
@@ -44,6 +45,8 @@ function DownloadButtons({ report }: { report: ReportSummaryRead }) {
 }
 
 export function ReportsPage() {
+  const { t } = useTranslation()
+
   const defaults = useMemo(() => {
     const end = new Date()
     const start = new Date(end)
@@ -72,10 +75,8 @@ export function ReportsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Generate operational reports for executions, failures and alerts.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('reports.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('reports.subtitle')}</p>
       </div>
 
       <form
@@ -83,16 +84,16 @@ export function ReportsPage() {
         className="mb-6 grid gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_190px_190px_auto]"
       >
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
-          Name
+          {t('reports.labelName')}
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Operational report"
+            placeholder={t('reports.placeholderName')}
             className="rounded-md border border-gray-200 px-3 py-2 text-sm font-normal text-gray-900 outline-none focus:border-blue-400"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
-          Start
+          {t('reports.labelStart')}
           <input
             type="datetime-local"
             required
@@ -102,7 +103,7 @@ export function ReportsPage() {
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
-          End
+          {t('reports.labelEnd')}
           <input
             type="datetime-local"
             required
@@ -117,27 +118,27 @@ export function ReportsPage() {
             disabled={generate.isPending}
             className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
           >
-            {generate.isPending ? 'Generating…' : 'Generate Report'}
+            {generate.isPending ? t('reports.generating') : t('reports.generate')}
           </button>
         </div>
       </form>
 
       {generate.isError && (
         <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not generate report for the selected period.
+          {t('reports.generateError')}
         </div>
       )}
 
-      {isLoading && <p className="text-sm text-gray-500">Loading reports…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('reports.loading')}</p>}
 
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load reports. Make sure the API is running.
+          {t('reports.error')}
         </div>
       )}
 
       {!isLoading && !isError && reports && reports.length === 0 && (
-        <p className="text-sm text-gray-500">No reports generated yet.</p>
+        <p className="text-sm text-gray-500">{t('reports.empty')}</p>
       )}
 
       {!isLoading && !isError && reports && reports.length > 0 && (
@@ -145,11 +146,11 @@ export function ReportsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Name</th>
-                <th className="py-3 pr-4">Period</th>
-                <th className="py-3 pr-4">Created</th>
-                <th className="py-3 pr-4">Format</th>
-                <th className="py-3 pr-4 text-right">Downloads</th>
+                <th className="py-3 pr-4 pl-4">{t('reports.colName')}</th>
+                <th className="py-3 pr-4">{t('reports.colPeriod')}</th>
+                <th className="py-3 pr-4">{t('reports.colCreated')}</th>
+                <th className="py-3 pr-4">{t('reports.colFormat')}</th>
+                <th className="py-3 pr-4 text-right">{t('reports.colDownloads')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

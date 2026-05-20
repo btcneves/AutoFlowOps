@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   useCreateEscalationPolicy,
   useDeleteEscalationPolicy,
@@ -20,6 +21,7 @@ function PolicyForm({
   editing: EscalationPolicyRead | null
   onDone: () => void
 }) {
+  const { t } = useTranslation()
   const create = useCreateEscalationPolicy()
   const update = useUpdateEscalationPolicy()
   const { data: channels } = useNotificationChannels()
@@ -56,7 +58,7 @@ function PolicyForm({
     event.preventDefault()
     setError(null)
     if (!name.trim()) {
-      setError('Name is required.')
+      setError(t('escalation.errorName'))
       return
     }
     const payload = { name: name.trim(), is_active: isActive, steps }
@@ -73,7 +75,7 @@ function PolicyForm({
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-900">
-          {editing ? 'Edit policy' : 'New escalation policy'}
+          {editing ? t('escalation.formTitleEdit') : t('escalation.formTitleNew')}
         </h2>
         {editing && (
           <button
@@ -81,13 +83,13 @@ function PolicyForm({
             onClick={onDone}
             className="text-xs text-gray-500 hover:text-gray-700"
           >
-            Cancel
+            {t('escalation.cancel')}
           </button>
         )}
       </div>
       <div className="mb-4 flex items-center gap-4">
         <label className="flex-1 text-xs font-medium text-gray-600">
-          Name
+          {t('escalation.labelName')}
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -100,32 +102,30 @@ function PolicyForm({
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
           />
-          Active
+          {t('escalation.labelActive')}
         </label>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-gray-600">Steps</p>
+        <p className="text-xs font-medium text-gray-600">{t('escalation.labelSteps')}</p>
         {steps.map((step, index) => (
           <div key={index} className="flex items-center gap-2 rounded border border-gray-100 p-2">
             <span className="w-6 text-center text-xs text-gray-400">{index + 1}</span>
             <label className="flex-1 text-xs text-gray-600">
-              Channel
+              {t('escalation.labelChannel')}
               <select
                 value={step.channel_id}
                 onChange={(e) => updateStep(index, 'channel_id', e.target.value)}
                 className="mt-0.5 w-full rounded border border-gray-300 px-2 py-1 text-sm"
               >
-                <option value="">— select channel —</option>
+                <option value="">{t('escalation.selectChannel')}</option>
                 {channels?.map((ch) => (
-                  <option key={ch.id} value={ch.id}>
-                    {ch.name}
-                  </option>
+                  <option key={ch.id} value={ch.id}>{ch.name}</option>
                 ))}
               </select>
             </label>
             <label className="w-28 text-xs text-gray-600">
-              Delay (min)
+              {t('escalation.labelDelay')}
               <input
                 type="number"
                 min={0}
@@ -140,7 +140,7 @@ function PolicyForm({
                 onClick={() => removeStep(index)}
                 className="mt-3 text-xs text-red-500 hover:text-red-700"
               >
-                Remove
+                {t('escalation.remove')}
               </button>
             )}
           </div>
@@ -150,7 +150,7 @@ function PolicyForm({
           onClick={addStep}
           className="text-xs text-blue-600 hover:underline"
         >
-          + Add step
+          {t('escalation.addStep')}
         </button>
       </div>
 
@@ -159,7 +159,7 @@ function PolicyForm({
         disabled={isPending}
         className="mt-4 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
       >
-        {editing ? 'Save policy' : 'Create policy'}
+        {editing ? t('escalation.savePolicy') : t('escalation.createPolicy')}
       </button>
     </form>
   )
@@ -172,6 +172,7 @@ function PolicyRow({
   policy: EscalationPolicyRead
   onEdit: (p: EscalationPolicyRead) => void
 }) {
+  const { t } = useTranslation()
   const remove = useDeleteEscalationPolicy()
   const deleteStep = useDeleteEscalationStep()
   const { data: channels } = useNotificationChannels()
@@ -191,7 +192,7 @@ function PolicyRow({
               : 'bg-gray-100 text-gray-600'
           }`}
         >
-          {policy.is_active ? 'Active' : 'Inactive'}
+          {policy.is_active ? t('escalation.active') : t('escalation.inactive')}
         </span>
       </td>
       <td className="py-3 pr-4 text-xs text-gray-600">
@@ -206,14 +207,16 @@ function PolicyRow({
                 <li key={step.id} className="flex items-center gap-1">
                   <span>
                     {channelName(step.channel_id)}
-                    {step.delay_minutes > 0 ? ` +${step.delay_minutes}min` : ' (immediate)'}
+                    {step.delay_minutes > 0
+                      ? ` ${t('escalation.delayMin', { delay: step.delay_minutes })}`
+                      : ` ${t('escalation.immediate')}`}
                   </span>
                   <button
                     onClick={() =>
                       deleteStep.mutate({ policyId: policy.id, stepId: step.id })
                     }
                     className="text-red-400 hover:text-red-600"
-                    title="Remove step"
+                    title={t('escalation.removeStep')}
                   >
                     ×
                   </button>
@@ -228,14 +231,14 @@ function PolicyRow({
           onClick={() => onEdit(policy)}
           className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
         >
-          Edit
+          {t('escalation.edit')}
         </button>
         <button
           onClick={() => remove.mutate(policy.id)}
           disabled={remove.isPending}
           className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
-          Delete
+          {t('escalation.delete')}
         </button>
       </td>
     </tr>
@@ -243,39 +246,38 @@ function PolicyRow({
 }
 
 export function EscalationPoliciesPage() {
+  const { t } = useTranslation()
   const { data: policies, isLoading, isError } = useEscalationPolicies()
   const [editing, setEditing] = useState<EscalationPolicyRead | null>(null)
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Escalation Policies</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Define multi-step escalation sequences for unacknowledged alerts.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('escalation.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('escalation.subtitle')}</p>
       </div>
 
       <PolicyForm editing={editing} onDone={() => setEditing(null)} />
 
-      {isLoading && <p className="text-sm text-gray-500">Loading policies…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('escalation.loading')}</p>}
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load escalation policies. Make sure the API is running.
+          {t('escalation.error')}
         </div>
       )}
       {!isLoading && !isError && policies && policies.length === 0 && (
-        <p className="text-sm text-gray-500">No escalation policies configured yet.</p>
+        <p className="text-sm text-gray-500">{t('escalation.empty')}</p>
       )}
       {!isLoading && !isError && policies && policies.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Name</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">Steps</th>
-                <th className="py-3 pr-4">Created</th>
-                <th className="py-3 pr-4 text-right">Actions</th>
+                <th className="py-3 pr-4 pl-4">{t('escalation.colName')}</th>
+                <th className="py-3 pr-4">{t('escalation.colStatus')}</th>
+                <th className="py-3 pr-4">{t('escalation.colSteps')}</th>
+                <th className="py-3 pr-4">{t('escalation.colCreated')}</th>
+                <th className="py-3 pr-4 text-right">{t('escalation.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

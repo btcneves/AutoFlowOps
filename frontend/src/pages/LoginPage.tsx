@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const { login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -18,7 +20,7 @@ export function LoginPage() {
       await login({ email, password })
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : t('login.failed'))
     } finally {
       setIsPending(false)
     }
@@ -29,13 +31,13 @@ export function LoginPage() {
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">AutoFlowOps</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
+          <p className="mt-1 text-sm text-gray-500">{t('login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700" htmlFor="email">
-              Email
+              {t('login.emailLabel')}
             </label>
             <input
               id="email"
@@ -44,14 +46,14 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="admin@autoflowops.local"
+              placeholder={t('login.emailPlaceholder')}
               autoComplete="email"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700" htmlFor="password">
-              Password
+              {t('login.passwordLabel')}
             </label>
             <input
               id="password"
@@ -75,7 +77,7 @@ export function LoginPage() {
             disabled={isPending}
             className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            {isPending ? 'Signing in…' : 'Sign in'}
+            {isPending ? t('login.submitting') : t('login.submit')}
           </button>
         </form>
       </div>

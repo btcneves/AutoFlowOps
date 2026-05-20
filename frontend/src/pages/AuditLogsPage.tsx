@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { AuditLogFilters } from '../api/audit_logs'
 import { useAuditLogs } from '../hooks/useAuditLogs'
 
@@ -13,6 +14,7 @@ const STATUS_COLOURS: Record<string, string> = {
 }
 
 export function AuditLogsPage() {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<AuditLogFilters>({})
   const [draft, setDraft] = useState<AuditLogFilters>({})
   const { data: logs, isLoading, isError } = useAuditLogs(filters)
@@ -35,17 +37,15 @@ export function AuditLogsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Immutable record of security-relevant actions.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('auditLogs.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('auditLogs.subtitle')}</p>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
         <input
           value={draft.action ?? ''}
           onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value || undefined }))}
-          placeholder="Filter by action…"
+          placeholder={t('auditLogs.filterAction')}
           className="rounded border border-gray-300 px-2 py-1.5 text-xs"
         />
         <input
@@ -53,7 +53,7 @@ export function AuditLogsPage() {
           onChange={(e) =>
             setDraft((d) => ({ ...d, resource_type: e.target.value || undefined }))
           }
-          placeholder="Resource type…"
+          placeholder={t('auditLogs.filterResource')}
           className="rounded border border-gray-300 px-2 py-1.5 text-xs"
         />
         <select
@@ -61,29 +61,29 @@ export function AuditLogsPage() {
           onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value || undefined }))}
           className="rounded border border-gray-300 px-2 py-1.5 text-xs"
         >
-          <option value="">All statuses</option>
-          <option value="success">Success</option>
-          <option value="failure">Failure</option>
-          <option value="denied">Denied</option>
+          <option value="">{t('auditLogs.filterAllStatuses')}</option>
+          <option value="success">{t('auditLogs.filterSuccess')}</option>
+          <option value="failure">{t('auditLogs.filterFailure')}</option>
+          <option value="denied">{t('auditLogs.filterDenied')}</option>
         </select>
         <button
           onClick={applyFilters}
           className="rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white"
         >
-          Apply
+          {t('auditLogs.apply')}
         </button>
         <button
           onClick={clearFilters}
           className="rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
         >
-          Clear
+          {t('auditLogs.clear')}
         </button>
       </div>
 
-      {isLoading && <p className="text-sm text-gray-500">Loading audit logs…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('auditLogs.loading')}</p>}
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load audit logs.
+          {t('auditLogs.error')}
         </div>
       )}
       {!isLoading && !isError && logs && (
@@ -91,11 +91,11 @@ export function AuditLogsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Timestamp</th>
-                <th className="py-3 pr-4">Action</th>
-                <th className="py-3 pr-4">Resource</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">IP</th>
+                <th className="py-3 pr-4 pl-4">{t('auditLogs.colTimestamp')}</th>
+                <th className="py-3 pr-4">{t('auditLogs.colAction')}</th>
+                <th className="py-3 pr-4">{t('auditLogs.colResource')}</th>
+                <th className="py-3 pr-4">{t('auditLogs.colStatus')}</th>
+                <th className="py-3 pr-4">{t('auditLogs.colIp')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -134,7 +134,7 @@ export function AuditLogsPage() {
             </tbody>
           </table>
           {logs.length === 0 && (
-            <p className="py-6 text-center text-sm text-gray-500">No audit log entries found.</p>
+            <p className="py-6 text-center text-sm text-gray-500">{t('auditLogs.empty')}</p>
           )}
         </div>
       )}

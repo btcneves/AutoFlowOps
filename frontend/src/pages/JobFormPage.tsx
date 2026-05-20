@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useJob, useCreateJob, useUpdateJob } from '../hooks/useJobs'
 import type { HttpMethod, JobCreate, JobUpdate, ScheduleType } from '../types'
 
 const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-const SCHEDULE_TYPES: { value: ScheduleType; label: string }[] = [
-  { value: 'manual', label: 'Manual only' },
-  { value: 'interval', label: 'Interval (seconds)' },
-  { value: 'cron', label: 'Cron expression' },
-]
 
 interface FormState {
   name: string
@@ -39,9 +35,16 @@ const EMPTY: FormState = {
 }
 
 export function JobFormPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const isEdit = id !== undefined
   const navigate = useNavigate()
+
+  const scheduleTypes: { value: ScheduleType; label: string }[] = [
+    { value: 'manual', label: t('jobForm.scheduleManual') },
+    { value: 'interval', label: t('jobForm.scheduleInterval') },
+    { value: 'cron', label: t('jobForm.scheduleCron') },
+  ]
 
   const { data: existing, isLoading: loadingJob } = useJob(id ?? '')
   const createJob = useCreateJob()
@@ -76,10 +79,10 @@ export function JobFormPage() {
     e.preventDefault()
     setError(null)
 
-    if (!form.name.trim()) { setError('Name is required'); return }
-    if (!form.url.trim()) { setError('URL is required'); return }
+    if (!form.name.trim()) { setError(t('jobForm.errorName')); return }
+    if (!form.url.trim()) { setError(t('jobForm.errorUrl')); return }
     if (form.schedule_type !== 'manual' && !form.schedule_expression.trim()) {
-      setError('Schedule expression is required for interval and cron types'); return
+      setError(t('jobForm.errorSchedule')); return
     }
 
     try {
@@ -122,7 +125,7 @@ export function JobFormPage() {
   }
 
   if (isEdit && loadingJob) {
-    return <p className="text-sm text-gray-500">Loading job…</p>
+    return <p className="text-sm text-gray-500">{t('jobDetail.loading')}</p>
   }
 
   const isPending = createJob.isPending || updateJob.isPending
@@ -130,26 +133,26 @@ export function JobFormPage() {
   return (
     <div className="max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">
-        {isEdit ? 'Edit Job' : 'New Job'}
+        {isEdit ? t('jobForm.titleEdit') : t('jobForm.titleNew')}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-5 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Name *</label>
+          <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelName')}</label>
           <input
             type="text"
             required
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Daily health check"
+            placeholder={t('jobForm.placeholderName')}
           />
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
+          <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelDescription')}</label>
           <input
             type="text"
             value={form.description}
@@ -161,7 +164,7 @@ export function JobFormPage() {
         {/* Method + URL */}
         <div className="flex gap-3">
           <div className="w-32 shrink-0">
-            <label className="block text-sm font-medium text-gray-700">Method *</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelMethod')}</label>
             <select
               value={form.method}
               onChange={(e) => set('method', e.target.value)}
@@ -171,14 +174,14 @@ export function JobFormPage() {
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700">URL *</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelUrl')}</label>
             <input
               type="url"
               required
               value={form.url}
               onChange={(e) => set('url', e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="https://api.example.com/health"
+              placeholder={t('jobForm.placeholderUrl')}
             />
           </div>
         </div>
@@ -186,13 +189,13 @@ export function JobFormPage() {
         {/* Body */}
         {['POST', 'PUT', 'PATCH'].includes(form.method) && (
           <div>
-            <label className="block text-sm font-medium text-gray-700">Request Body</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelBody')}</label>
             <textarea
               value={form.body}
               onChange={(e) => set('body', e.target.value)}
               rows={4}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder='{"key": "value"}'
+              placeholder={t('jobForm.placeholderBody')}
             />
           </div>
         )}
@@ -200,26 +203,26 @@ export function JobFormPage() {
         {/* Schedule */}
         <div className="flex gap-3">
           <div className="w-48 shrink-0">
-            <label className="block text-sm font-medium text-gray-700">Schedule</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelSchedule')}</label>
             <select
               value={form.schedule_type}
               onChange={(e) => set('schedule_type', e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              {SCHEDULE_TYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {scheduleTypes.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
           {form.schedule_type !== 'manual' && (
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700">
-                {form.schedule_type === 'interval' ? 'Interval (seconds) *' : 'Cron expression *'}
+                {form.schedule_type === 'interval' ? t('jobForm.labelInterval') : t('jobForm.labelCron')}
               </label>
               <input
                 type="text"
                 value={form.schedule_expression}
                 onChange={(e) => set('schedule_expression', e.target.value)}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder={form.schedule_type === 'interval' ? '300' : '*/10 * * * *'}
+                placeholder={form.schedule_type === 'interval' ? t('jobForm.placeholderInterval') : t('jobForm.placeholderCron')}
               />
             </div>
           )}
@@ -228,7 +231,7 @@ export function JobFormPage() {
         {/* Timeout + Retry */}
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Timeout (s)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelTimeout')}</label>
             <input
               type="number"
               min={1}
@@ -239,7 +242,7 @@ export function JobFormPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Retries</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelRetries')}</label>
             <input
               type="number"
               min={0}
@@ -250,7 +253,7 @@ export function JobFormPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Retry delay (s)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('jobForm.labelRetryDelay')}</label>
             <input
               type="number"
               min={1}
@@ -271,7 +274,7 @@ export function JobFormPage() {
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           <label htmlFor="alert_on_failure" className="text-sm text-gray-700">
-            Create alert on failure
+            {t('jobForm.labelAlert')}
           </label>
         </div>
 
@@ -287,14 +290,14 @@ export function JobFormPage() {
             onClick={() => navigate(isEdit ? `/jobs/${id}` : '/jobs')}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t('jobForm.cancel')}
           </button>
           <button
             type="submit"
             disabled={isPending}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Job'}
+            {isPending ? t('jobForm.saving') : isEdit ? t('jobForm.saveChanges') : t('jobForm.createJob')}
           </button>
         </div>
       </form>

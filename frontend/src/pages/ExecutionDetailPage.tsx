@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useExecution } from '../hooks/useExecutions'
 
 function formatDate(iso: string | null): string {
@@ -7,6 +8,7 @@ function formatDate(iso: string | null): string {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useTranslation()
   const styles: Record<string, string> = {
     success: 'bg-green-100 text-green-700',
     failure: 'bg-red-100 text-red-700',
@@ -15,7 +17,7 @@ function StatusPill({ status }: { status: string }) {
   const cls = styles[status] ?? 'bg-gray-100 text-gray-600'
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {t(`statusLabel.${status}`, { defaultValue: status.charAt(0).toUpperCase() + status.slice(1) })}
     </span>
   )
 }
@@ -30,14 +32,15 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export function ExecutionDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const { data: exc, isLoading, isError } = useExecution(id!)
 
-  if (isLoading) return <p className="text-sm text-gray-500">Loading execution…</p>
+  if (isLoading) return <p className="text-sm text-gray-500">{t('executionDetail.loading')}</p>
   if (isError || !exc) {
     return (
       <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-        Execution not found.
+        {t('executionDetail.notFound')}
       </div>
     )
   }
@@ -45,48 +48,48 @@ export function ExecutionDetailPage() {
   return (
     <div className="max-w-3xl">
       <nav className="mb-3 text-xs text-gray-400">
-        <Link to="/executions" className="hover:underline">Executions</Link>
+        <Link to="/executions" className="hover:underline">{t('executionDetail.breadcrumb')}</Link>
         <span className="mx-1">/</span>
         <span>{exc.id.slice(0, 8)}…</span>
       </nav>
 
       <div className="mb-4 flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Execution Detail</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('executionDetail.title')}</h1>
         <StatusPill status={exc.status} />
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <dl className="px-4">
-          <InfoRow label="ID">{exc.id}</InfoRow>
-          <InfoRow label="Job">
+          <InfoRow label={t('executionDetail.labelId')}>{exc.id}</InfoRow>
+          <InfoRow label={t('executionDetail.labelJob')}>
             <Link to={`/jobs/${exc.job_id}`} className="text-blue-600 hover:underline">
               {exc.job_id}
             </Link>
           </InfoRow>
-          <InfoRow label="Status"><StatusPill status={exc.status} /></InfoRow>
-          <InfoRow label="Trigger">{exc.trigger_type}</InfoRow>
-          <InfoRow label="Started">{formatDate(exc.started_at)}</InfoRow>
-          <InfoRow label="Finished">{formatDate(exc.finished_at)}</InfoRow>
-          <InfoRow label="Duration">
+          <InfoRow label={t('executionDetail.labelStatus')}><StatusPill status={exc.status} /></InfoRow>
+          <InfoRow label={t('executionDetail.labelTrigger')}>{exc.trigger_type}</InfoRow>
+          <InfoRow label={t('executionDetail.labelStarted')}>{formatDate(exc.started_at)}</InfoRow>
+          <InfoRow label={t('executionDetail.labelFinished')}>{formatDate(exc.finished_at)}</InfoRow>
+          <InfoRow label={t('executionDetail.labelDuration')}>
             {exc.duration_ms !== null ? `${exc.duration_ms} ms` : '—'}
           </InfoRow>
-          <InfoRow label="Retry attempt">{exc.retry_attempt}</InfoRow>
+          <InfoRow label={t('executionDetail.labelRetryAttempt')}>{exc.retry_attempt}</InfoRow>
         </dl>
       </div>
 
-      <h2 className="mb-2 mt-6 text-lg font-semibold text-gray-900">Request</h2>
+      <h2 className="mb-2 mt-6 text-lg font-semibold text-gray-900">{t('executionDetail.sectionRequest')}</h2>
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <dl className="px-4">
-          <InfoRow label="Method">{exc.request_method ?? '—'}</InfoRow>
-          <InfoRow label="URL">{exc.request_url ?? '—'}</InfoRow>
-          <InfoRow label="Headers (masked)">
+          <InfoRow label={t('executionDetail.labelMethod')}>{exc.request_method ?? '—'}</InfoRow>
+          <InfoRow label={t('executionDetail.labelUrl')}>{exc.request_url ?? '—'}</InfoRow>
+          <InfoRow label={t('executionDetail.labelHeadersMasked')}>
             {exc.request_headers_masked ? (
               <pre className="max-h-40 overflow-auto text-xs text-gray-700">
                 {exc.request_headers_masked}
               </pre>
             ) : '—'}
           </InfoRow>
-          <InfoRow label="Body (masked)">
+          <InfoRow label={t('executionDetail.labelBodyMasked')}>
             {exc.request_body_masked ? (
               <pre className="max-h-40 overflow-auto text-xs text-gray-700">
                 {exc.request_body_masked}
@@ -96,11 +99,11 @@ export function ExecutionDetailPage() {
         </dl>
       </div>
 
-      <h2 className="mb-2 mt-6 text-lg font-semibold text-gray-900">Response</h2>
+      <h2 className="mb-2 mt-6 text-lg font-semibold text-gray-900">{t('executionDetail.sectionResponse')}</h2>
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <dl className="px-4">
-          <InfoRow label="HTTP status">{exc.response_status_code ?? '—'}</InfoRow>
-          <InfoRow label="Body preview">
+          <InfoRow label={t('executionDetail.labelHttpStatus')}>{exc.response_status_code ?? '—'}</InfoRow>
+          <InfoRow label={t('executionDetail.labelBodyPreview')}>
             {exc.response_body_preview ? (
               <pre className="max-h-60 overflow-auto text-xs text-gray-700">
                 {exc.response_body_preview}
@@ -108,7 +111,7 @@ export function ExecutionDetailPage() {
             ) : '—'}
           </InfoRow>
           {exc.error_message && (
-            <InfoRow label="Error">
+            <InfoRow label={t('executionDetail.labelError')}>
               <span className="text-red-600">{exc.error_message}</span>
             </InfoRow>
           )}

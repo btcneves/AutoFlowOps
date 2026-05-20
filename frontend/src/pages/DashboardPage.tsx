@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ExecutionsChart } from '../components/ui/ExecutionsChart'
 import { MetricCard } from '../components/ui/MetricCard'
 import { StatusBadge } from '../components/ui/StatusBadge'
@@ -5,6 +6,7 @@ import { useHealth } from '../hooks/useHealth'
 import { useStats } from '../hooks/useStats'
 
 export function DashboardPage() {
+  const { t } = useTranslation()
   const { data: health, isLoading: healthLoading, isError: healthError } = useHealth()
   const { data: stats, isLoading: statsLoading } = useStats()
 
@@ -23,36 +25,34 @@ export function DashboardPage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Operational overview of your automation platform
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
-          Backend <StatusBadge status={backendStatus} />
+          {t('dashboard.backend')} <StatusBadge status={backendStatus} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Active Jobs"
+          title={t('dashboard.activeJobs')}
           value={activeJobs}
-          description={stats ? `${stats.total_jobs} total` : 'Loading…'}
+          description={stats ? t('dashboard.totalJobs', { count: stats.total_jobs }) : t('dashboard.loadingStats')}
         />
         <MetricCard
-          title="Executions (24h)"
+          title={t('dashboard.executions24h')}
           value={executions24h}
-          description={stats ? `${stats.total_executions} all time` : 'Loading…'}
+          description={stats ? t('dashboard.allTimeExecutions', { count: stats.total_executions }) : t('dashboard.loadingStats')}
         />
         <MetricCard
-          title="Failures (24h)"
+          title={t('dashboard.failures24h')}
           value={failures24h}
-          description={stats && stats.failures_24h === 0 ? 'All clear' : 'Check logs'}
+          description={stats && stats.failures_24h === 0 ? t('dashboard.allClear') : t('dashboard.checkLogs')}
         />
         <MetricCard
-          title="Success Rate"
+          title={t('dashboard.successRate')}
           value={successRate}
-          description={stats ? `Last 24 hours` : 'Loading…'}
+          description={stats ? t('dashboard.last24h') : t('dashboard.loadingStats')}
         />
       </div>
 
@@ -64,13 +64,13 @@ export function DashboardPage() {
 
       {!healthLoading && !healthError && health && (
         <p className="mt-6 text-xs text-gray-400">
-          Connected to {health.app} ({health.env})
+          {t('dashboard.connectedTo', { app: health.app, env: health.env })}
         </p>
       )}
 
       {healthError && (
         <div className="mt-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not reach the backend. Make sure the API is running at the configured URL.
+          {t('dashboard.backendError')}
         </div>
       )}
     </div>

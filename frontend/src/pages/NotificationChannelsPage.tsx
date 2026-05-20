@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   useActivateNotificationChannel,
   useCreateNotificationChannel,
@@ -16,20 +17,13 @@ import type {
   NotificationChannelUpdatePayload,
 } from '../types'
 
-const typeLabels: Record<NotificationChannelType, string> = {
-  discord_webhook: 'Discord webhook',
-  slack_webhook: 'Slack webhook',
-  telegram_message: 'Telegram',
-  smtp_email: 'SMTP email',
-  custom_webhook: 'Custom webhook',
-}
-
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleString()
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useTranslation()
   const active = status === 'active'
   return (
     <span
@@ -37,7 +31,7 @@ function StatusPill({ status }: { status: string }) {
         active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
       }`}
     >
-      {active ? 'Active' : 'Paused'}
+      {active ? t('channels.statusActive') : t('channels.statusPaused')}
     </span>
   )
 }
@@ -49,6 +43,7 @@ function ChannelForm({
   editing: NotificationChannelRead | null
   onDone: () => void
 }) {
+  const { t } = useTranslation()
   const create = useCreateNotificationChannel()
   const update = useUpdateNotificationChannel()
   const [name, setName] = useState(editing?.name ?? '')
@@ -123,11 +118,11 @@ function ChannelForm({
     try {
       const config = buildConfig()
       if (!name.trim()) {
-        setError('Name is required.')
+        setError(t('channels.errorName'))
         return
       }
       if (!editing && config === null) {
-        setError('Channel configuration is required.')
+        setError(t('channels.errorConfig'))
         return
       }
       const payload: NotificationChannelUpdatePayload = {
@@ -141,7 +136,7 @@ function ChannelForm({
         : create.mutateAsync({ name: name.trim(), type, status, config: config ?? {} })
       void mutation.then(onDone).catch((err: Error) => setError(err.message))
     } catch {
-      setError('Headers must be valid JSON.')
+      setError(t('channels.errorHeaders'))
     }
   }
 
@@ -149,47 +144,47 @@ function ChannelForm({
     <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-900">
-          {editing ? 'Edit channel' : 'New channel'}
+          {editing ? t('channels.formTitleEdit') : t('channels.formTitleNew')}
         </h2>
         {editing && (
           <button type="button" onClick={onDone} className="text-xs text-gray-500 hover:text-gray-700">
-            Cancel
+            {t('channels.cancel')}
           </button>
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-4">
         <label className="text-xs font-medium text-gray-600">
-          Name
+          {t('channels.labelName')}
           <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Type
+          {t('channels.labelType')}
           <select value={type} onChange={(e) => setType(e.target.value as NotificationChannelType)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
-            <option value="discord_webhook">Discord webhook</option>
-            <option value="slack_webhook">Slack webhook</option>
-            <option value="telegram_message">Telegram</option>
-            <option value="smtp_email">SMTP email</option>
-            <option value="custom_webhook">Custom webhook</option>
+            <option value="discord_webhook">{t('channels.typeDiscord')}</option>
+            <option value="slack_webhook">{t('channels.typeSlack')}</option>
+            <option value="telegram_message">{t('channels.typeTelegram')}</option>
+            <option value="smtp_email">{t('channels.typeSmtp')}</option>
+            <option value="custom_webhook">{t('channels.typeCustom')}</option>
           </select>
         </label>
         <label className="text-xs font-medium text-gray-600">
-          Status
+          {t('channels.labelStatus')}
           <select value={status} onChange={(e) => setStatus(e.target.value as NotificationChannelStatus)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
+            <option value="active">{t('channels.statusActive')}</option>
+            <option value="paused">{t('channels.statusPaused')}</option>
           </select>
         </label>
       </div>
 
       {editing && maskedConfig && (
-        <p className="mt-3 text-xs text-gray-500">Saved config: {maskedConfig}</p>
+        <p className="mt-3 text-xs text-gray-500">{t('channels.savedConfig', { config: maskedConfig })}</p>
       )}
 
       {type === 'discord_webhook' && (
         <div className="mt-3">
           <label className="text-xs font-medium text-gray-600">
-            Webhook URL
-            <input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder={editing ? 'Leave blank to keep current URL' : ''} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
+            {t('channels.labelWebhookUrl')}
+            <input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder={editing ? t('channels.placeholderKeepUrl') : ''} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
         </div>
       )}
@@ -197,11 +192,11 @@ function ChannelForm({
       {type === 'slack_webhook' && (
         <div className="mt-3">
           <label className="text-xs font-medium text-gray-600">
-            Slack Incoming Webhook URL
+            {t('channels.labelSlackUrl')}
             <input
               value={slackUrl}
               onChange={(e) => setSlackUrl(e.target.value)}
-              placeholder={editing ? 'Leave blank to keep current URL' : 'https://hooks.slack.com/services/…'}
+              placeholder={editing ? t('channels.placeholderKeepUrl') : t('channels.placeholderSlackUrl')}
               className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
             />
           </label>
@@ -211,17 +206,17 @@ function ChannelForm({
       {type === 'telegram_message' && (
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="text-xs font-medium text-gray-600">
-            Bot Token
+            {t('channels.labelBotToken')}
             <input
               type="password"
               value={telegramToken}
               onChange={(e) => setTelegramToken(e.target.value)}
-              placeholder={editing ? 'Leave blank to keep current token' : '123456:ABC…'}
+              placeholder={editing ? t('channels.placeholderKeepToken') : t('channels.placeholderBotToken')}
               className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
             />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            Chat ID
+            {t('channels.labelChatId')}
             <input
               value={telegramChatId}
               onChange={(e) => setTelegramChatId(e.target.value)}
@@ -235,12 +230,12 @@ function ChannelForm({
       {type === 'custom_webhook' && (
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="text-xs font-medium text-gray-600">
-            URL
-            <input value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} placeholder={editing ? 'Leave blank to keep current URL' : ''} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
+            {t('channels.labelUrl')}
+            <input value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} placeholder={editing ? t('channels.placeholderKeepUrl') : ''} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            Headers JSON
-            <input value={customHeaders} onChange={(e) => setCustomHeaders(e.target.value)} placeholder='{"X-Event":"autoflowops"}' className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
+            {t('channels.labelHeadersJson')}
+            <input value={customHeaders} onChange={(e) => setCustomHeaders(e.target.value)} placeholder={t('channels.placeholderHeaders')} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
         </div>
       )}
@@ -248,43 +243,43 @@ function ChannelForm({
       {type === 'smtp_email' && (
         <div className="mt-3 grid gap-3 md:grid-cols-4">
           <label className="text-xs font-medium text-gray-600">
-            Host
+            {t('channels.labelHost')}
             <input value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            Port
+            {t('channels.labelPort')}
             <input value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            Username
+            {t('channels.labelUsername')}
             <input value={smtpUsername} onChange={(e) => setSmtpUsername(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            Password
+            {t('channels.labelPassword')}
             <input type="password" value={smtpPassword} onChange={(e) => setSmtpPassword(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            From
+            {t('channels.labelFrom')}
             <input value={smtpFrom} onChange={(e) => setSmtpFrom(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs font-medium text-gray-600">
-            To
+            {t('channels.labelTo')}
             <input value={smtpTo} onChange={(e) => setSmtpTo(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="flex items-center gap-2 pt-6 text-xs font-medium text-gray-600">
             <input type="checkbox" checked={smtpTls} onChange={(e) => setSmtpTls(e.target.checked)} />
-            TLS
+            {t('channels.labelTls')}
           </label>
           <label className="flex items-center gap-2 pt-6 text-xs font-medium text-gray-600">
             <input type="checkbox" checked={smtpSsl} onChange={(e) => setSmtpSsl(e.target.checked)} />
-            SSL
+            {t('channels.labelSsl')}
           </label>
         </div>
       )}
 
       {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
       <button disabled={isPending} className="mt-4 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
-        {editing ? 'Save channel' : 'Create channel'}
+        {editing ? t('channels.saveChannel') : t('channels.createChannel')}
       </button>
     </form>
   )
@@ -297,11 +292,20 @@ function ChannelRow({
   channel: NotificationChannelRead
   onEdit: (channel: NotificationChannelRead) => void
 }) {
+  const { t } = useTranslation()
   const activate = useActivateNotificationChannel()
   const deactivate = useDeactivateNotificationChannel()
   const remove = useDeleteNotificationChannel()
   const test = useTestNotificationChannel()
   const isActive = channel.status === 'active'
+
+  const typeLabels: Record<NotificationChannelType, string> = {
+    discord_webhook: t('channels.typeDiscord'),
+    slack_webhook: t('channels.typeSlack'),
+    telegram_message: t('channels.typeTelegram'),
+    smtp_email: t('channels.typeSmtp'),
+    custom_webhook: t('channels.typeCustom'),
+  }
 
   return (
     <tr className="border-t border-gray-100">
@@ -310,20 +314,21 @@ function ChannelRow({
       <td className="py-3 pr-4"><StatusPill status={channel.status} /></td>
       <td className="py-3 pr-4 text-xs text-gray-500">{formatDate(channel.last_tested_at)}</td>
       <td className="py-3 pr-4 text-right space-x-1">
-        <button onClick={() => test.mutate(channel.id)} disabled={test.isPending} className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 disabled:opacity-50">Test</button>
-        <button onClick={() => onEdit(channel)} className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">Edit</button>
+        <button onClick={() => test.mutate(channel.id)} disabled={test.isPending} className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 disabled:opacity-50">{t('channels.test')}</button>
+        <button onClick={() => onEdit(channel)} className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">{t('channels.edit')}</button>
         {isActive ? (
-          <button onClick={() => deactivate.mutate(channel.id)} className="rounded px-2 py-1 text-xs text-yellow-600 hover:bg-yellow-50">Pause</button>
+          <button onClick={() => deactivate.mutate(channel.id)} className="rounded px-2 py-1 text-xs text-yellow-600 hover:bg-yellow-50">{t('channels.pause')}</button>
         ) : (
-          <button onClick={() => activate.mutate(channel.id)} className="rounded px-2 py-1 text-xs text-green-600 hover:bg-green-50">Activate</button>
+          <button onClick={() => activate.mutate(channel.id)} className="rounded px-2 py-1 text-xs text-green-600 hover:bg-green-50">{t('channels.activate')}</button>
         )}
-        <button onClick={() => remove.mutate(channel.id)} className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50">Delete</button>
+        <button onClick={() => remove.mutate(channel.id)} className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50">{t('channels.delete')}</button>
       </td>
     </tr>
   )
 }
 
 export function NotificationChannelsPage() {
+  const { t } = useTranslation()
   const { data: channels, isLoading, isError } = useNotificationChannels()
   const { data: deliveries } = useNotificationDeliveries()
   const [editing, setEditing] = useState<NotificationChannelRead | null>(null)
@@ -331,33 +336,31 @@ export function NotificationChannelsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Notification Channels</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          External destinations for critical operational alerts.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('channels.title')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('channels.subtitle')}</p>
       </div>
 
       <ChannelForm editing={editing} onDone={() => setEditing(null)} />
 
-      {isLoading && <p className="text-sm text-gray-500">Loading channels…</p>}
+      {isLoading && <p className="text-sm text-gray-500">{t('channels.loading')}</p>}
       {isError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load notification channels. Make sure the API is running.
+          {t('channels.error')}
         </div>
       )}
       {!isLoading && !isError && channels && channels.length === 0 && (
-        <p className="text-sm text-gray-500">No notification channels configured yet.</p>
+        <p className="text-sm text-gray-500">{t('channels.empty')}</p>
       )}
       {!isLoading && !isError && channels && channels.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <th className="py-3 pr-4 pl-4">Name</th>
-                <th className="py-3 pr-4">Type</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">Last Test</th>
-                <th className="py-3 pr-4 text-right">Actions</th>
+                <th className="py-3 pr-4 pl-4">{t('channels.colName')}</th>
+                <th className="py-3 pr-4">{t('channels.colType')}</th>
+                <th className="py-3 pr-4">{t('channels.colStatus')}</th>
+                <th className="py-3 pr-4">{t('channels.colLastTest')}</th>
+                <th className="py-3 pr-4 text-right">{t('channels.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -371,15 +374,15 @@ export function NotificationChannelsPage() {
 
       {deliveries && deliveries.length > 0 && (
         <div className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">Recent deliveries</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-900">{t('channels.deliveriesTitle')}</h2>
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="py-3 pr-4 pl-4">Channel</th>
-                  <th className="py-3 pr-4">Status</th>
-                  <th className="py-3 pr-4">Error</th>
-                  <th className="py-3 pr-4">Created</th>
+                  <th className="py-3 pr-4 pl-4">{t('channels.colChannel')}</th>
+                  <th className="py-3 pr-4">{t('channels.colStatus')}</th>
+                  <th className="py-3 pr-4">{t('channels.colError')}</th>
+                  <th className="py-3 pr-4">{t('channels.colCreated')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

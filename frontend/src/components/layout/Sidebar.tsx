@@ -1,26 +1,29 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
-
-const baseNavItems = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/jobs', label: 'Jobs' },
-  { to: '/executions', label: 'Executions' },
-  { to: '/webhooks', label: 'Webhooks' },
-  { to: '/alerts', label: 'Alerts' },
-  { to: '/notifications', label: 'Channels' },
-  { to: '/notification-templates', label: 'Templates' },
-  { to: '/escalation-policies', label: 'Escalation' },
-  { to: '/reports', label: 'Reports' },
-]
-
-const adminNavItems = [
-  { to: '/users', label: 'Users' },
-  { to: '/audit-logs', label: 'Audit Logs' },
-]
+import { LanguageSelector } from '../ui/LanguageSelector'
 
 export function Sidebar() {
+  const { t } = useTranslation()
   const { user, isAdmin, logout } = useAuth()
   const navigate = useNavigate()
+
+  const baseNavItems = [
+    { to: '/', label: t('nav.dashboard') },
+    { to: '/jobs', label: t('nav.jobs') },
+    { to: '/executions', label: t('nav.executions') },
+    { to: '/webhooks', label: t('nav.webhooks') },
+    { to: '/alerts', label: t('nav.alerts') },
+    { to: '/notifications', label: t('nav.channels') },
+    { to: '/notification-templates', label: t('nav.templates') },
+    { to: '/escalation-policies', label: t('nav.escalation') },
+    { to: '/reports', label: t('nav.reports') },
+  ]
+
+  const adminNavItems = [
+    { to: '/users', label: t('nav.users') },
+    { to: '/audit-logs', label: t('nav.auditLogs') },
+  ]
 
   function handleLogout() {
     logout()
@@ -60,8 +63,11 @@ export function Sidebar() {
             onClick={handleLogout}
             className="mt-1 text-xs text-gray-400 hover:text-gray-600"
           >
-            Sign out
+            {t('nav.signOut')}
           </button>
+          <div className="mt-3">
+            <LanguageSelector />
+          </div>
         </div>
       )}
     </aside>
