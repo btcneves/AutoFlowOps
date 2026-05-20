@@ -18,6 +18,8 @@ import type {
 
 const typeLabels: Record<NotificationChannelType, string> = {
   discord_webhook: 'Discord webhook',
+  slack_webhook: 'Slack webhook',
+  telegram_message: 'Telegram',
   smtp_email: 'SMTP email',
   custom_webhook: 'Custom webhook',
 }
@@ -57,6 +59,9 @@ function ChannelForm({
     editing?.status ?? 'active'
   )
   const [webhookUrl, setWebhookUrl] = useState('')
+  const [slackUrl, setSlackUrl] = useState('')
+  const [telegramToken, setTelegramToken] = useState('')
+  const [telegramChatId, setTelegramChatId] = useState('')
   const [customUrl, setCustomUrl] = useState('')
   const [customHeaders, setCustomHeaders] = useState('')
   const [smtpHost, setSmtpHost] = useState('')
@@ -82,6 +87,14 @@ function ChannelForm({
     if (type === 'discord_webhook') {
       if (!webhookUrl) return null
       return { webhook_url: webhookUrl }
+    }
+    if (type === 'slack_webhook') {
+      if (!slackUrl) return null
+      return { webhook_url: slackUrl }
+    }
+    if (type === 'telegram_message') {
+      if (!telegramToken || !telegramChatId) return null
+      return { bot_token: telegramToken, chat_id: telegramChatId }
     }
     if (type === 'custom_webhook') {
       if (!customUrl) return null
@@ -153,6 +166,8 @@ function ChannelForm({
           Type
           <select value={type} onChange={(e) => setType(e.target.value as NotificationChannelType)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
             <option value="discord_webhook">Discord webhook</option>
+            <option value="slack_webhook">Slack webhook</option>
+            <option value="telegram_message">Telegram</option>
             <option value="smtp_email">SMTP email</option>
             <option value="custom_webhook">Custom webhook</option>
           </select>
@@ -175,6 +190,44 @@ function ChannelForm({
           <label className="text-xs font-medium text-gray-600">
             Webhook URL
             <input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder={editing ? 'Leave blank to keep current URL' : ''} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
+          </label>
+        </div>
+      )}
+
+      {type === 'slack_webhook' && (
+        <div className="mt-3">
+          <label className="text-xs font-medium text-gray-600">
+            Slack Incoming Webhook URL
+            <input
+              value={slackUrl}
+              onChange={(e) => setSlackUrl(e.target.value)}
+              placeholder={editing ? 'Leave blank to keep current URL' : 'https://hooks.slack.com/services/…'}
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+        </div>
+      )}
+
+      {type === 'telegram_message' && (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <label className="text-xs font-medium text-gray-600">
+            Bot Token
+            <input
+              type="password"
+              value={telegramToken}
+              onChange={(e) => setTelegramToken(e.target.value)}
+              placeholder={editing ? 'Leave blank to keep current token' : '123456:ABC…'}
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+          <label className="text-xs font-medium text-gray-600">
+            Chat ID
+            <input
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value)}
+              placeholder="-100123456789"
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
           </label>
         </div>
       )}

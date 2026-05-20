@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-20
+
+### Added
+
+- **Slack webhook channel** — new `slack_webhook` channel type; sends Slack attachments with severity colour coding
+- **Telegram channel** — new `telegram_message` channel type; sends formatted messages via Bot API
+- **Notification templates** — `NotificationTemplate` model and CRUD API (`/api/notification-templates`); severity-specific or catch-all templates with `{title}`, `{severity}`, `{message}` variables; built-in fallback when no template matches
+- **Escalation policies** — `EscalationPolicy` and `EscalationStep` models; step 0 dispatches immediately, later steps create `EscalationEvent` records dispatched on a 60-second APScheduler cycle; events cancelled automatically on alert resolution
+- **Credential encryption at rest** — `credential_cipher.py` wraps Fernet (AES-128-CBC + HMAC); all channel `config_encrypted` values written using `NOTIFICATION_ENCRYPTION_KEY`; legacy plain-JSON records (v0.5.0) detected and handled transparently on read
+- **`NOTIFICATION_ENCRYPTION_KEY` setting** — URL-safe base64 Fernet key; if absent, derived from `APP_SECRET_KEY` with a logged WARNING (dev/test only)
+- **Frontend: Slack and Telegram channel forms** — `NotificationChannelsPage` now includes input sections for both new channel types
+- **Frontend: Notification Templates page** — create, edit and delete templates with severity filter and template variable preview
+- **Frontend: Escalation Policies page** — multi-step policy builder with channel selector and delay (minutes) per step
+- **Release notes** — `docs/release-notes-v0.6.0.md`
+
+### Changed
+
+- `dispatch_alert_notifications` checks for active escalation policies first; falls back to direct all-channels dispatch when none exist
+- Channel config read/write now goes through `encrypt_config`/`decrypt_config`; no plain secrets stored after first write
+- Slack and Telegram delivery errors are scrubbed of bot tokens and webhook URLs before persistence
+- Sidebar navigation split into **Channels**, **Templates** and **Escalation** entries
+
+### Test Results (v0.6.0)
+
+| Suite | Status |
+| --- | --- |
+| Backend lint (ruff) | Clean |
+| Backend tests (pytest) | 172 passing |
+| Frontend tests (Vitest) | 57 passing |
+| Frontend lint (ESLint) | Clean |
+| Frontend TypeScript | No errors |
+
 ## [0.5.0] - 2026-05-20
 
 ### Added

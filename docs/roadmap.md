@@ -36,6 +36,21 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.6.0)
+
+| Feature | Details |
+| --- | --- |
+| **Slack webhook channel** | `slack_webhook` type with Slack attachments format and severity colour coding |
+| **Telegram channel** | `telegram_message` type with Bot API and Markdown formatting |
+| **Notification templates** | Severity-specific or catch-all templates with title/body customisation and built-in fallback |
+| **Escalation policies** | Multi-step policies: step 0 dispatches immediately; later steps fire on a 60-second APScheduler cycle |
+| **Credential encryption** | Fernet AES encryption for all channel configs; `NOTIFICATION_ENCRYPTION_KEY` env var; legacy plain-JSON migration |
+| **Frontend: Templates page** | Create, edit and delete notification templates from the UI |
+| **Frontend: Escalation page** | Multi-step policy builder with channel selector and delay per step |
+| **Credential masking** | Slack URL, Telegram token and SMTP password scrubbed before any API response, log or delivery error record |
+
+---
+
 ## Completed (v0.5.0)
 
 | Feature | Details |
@@ -91,7 +106,7 @@ These features are planned but not yet in active development.
 
 | Feature | Description |
 | --- | --- |
-| **Additional notification providers** | Slack, Telegram and richer provider-specific delivery options |
+| **Additional notification providers** | PagerDuty, OpsGenie and richer provider-specific delivery options |
 | **Real-time logs** | WebSocket connection for live execution log streaming in the frontend |
 | **RBAC** | Role-based access control — admin, operator and read-only roles |
 | **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |
