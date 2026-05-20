@@ -1,7 +1,12 @@
 BACKEND_PYTEST ?= $(shell if [ -x backend/.venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
 BACKEND_RUFF ?= $(shell if [ -x backend/.venv/bin/ruff ]; then echo .venv/bin/ruff; else echo ruff; fi)
 
-.PHONY: dev up down logs worker-logs test lint format setup seed prod-up prod-down prod-logs prod-validate
+# Registry image tag for pull/registry-up targets. Override: IMAGE_TAG=v0.9.0 make pull
+IMAGE_TAG ?= latest
+
+.PHONY: dev up down logs worker-logs test lint format setup seed \
+        prod-up prod-down prod-logs prod-validate \
+        pull registry-up registry-down registry-logs
 
 setup:
 	@test -f .env || cp .env.example .env && echo ".env created from .env.example"
@@ -49,3 +54,16 @@ prod-validate:
 	docker compose -f docker-compose.prod.yml config --quiet && echo "docker-compose.prod.yml is valid"
 	docker run --rm -v "$$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
 	@echo "Caddyfile is valid"
+
+pull:
+	docker pull ghcr.io/btcneves/autoflowops-backend:$(IMAGE_TAG)
+	docker pull ghcr.io/btcneves/autoflowops-frontend:$(IMAGE_TAG)
+
+registry-up: setup
+	IMAGE_TAG=$(IMAGE_TAG) docker compose -f docker-compose.registry.yml up -d
+
+registry-down:
+	docker compose -f docker-compose.registry.yml down
+
+registry-logs:
+	docker compose -f docker-compose.registry.yml logs -f

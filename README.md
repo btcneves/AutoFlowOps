@@ -53,8 +53,8 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - User management API and frontend (admin-only)
 - Operational reports exportable as JSON, Markdown or CSV
 - Real-time event stream via WebSocket — live updates for executions, jobs and alerts without page refresh
-- One-command startup via Docker Compose
-- GitHub Actions CI for backend and frontend
+- One-command startup via Docker Compose — build locally or pull versioned images from GHCR
+- GitHub Actions CI for backend and frontend; automated Docker image publish on every release tag
 - Open-source under MIT License
 
 ---
@@ -73,7 +73,7 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 | Charts | Recharts |
 | Testing | pytest (backend), Vitest + Testing Library (frontend) |
 | Lint | ruff (backend), ESLint + Prettier (frontend) |
-| DevOps | Docker, Docker Compose, GitHub Actions, Makefile |
+| DevOps | Docker, Docker Compose, GitHub Actions, GHCR, Makefile |
 
 ---
 
@@ -105,6 +105,28 @@ More screenshots: [Webhooks](docs/assets/screenshots/webhooks.png) · [Alerts](d
 ---
 
 ## Quick Start
+
+### Option A — Pull from registry (no build required)
+
+The fastest way to run AutoFlowOps is to pull pre-built images from GitHub Container Registry:
+
+```bash
+git clone https://github.com/btcneves/autoflowops.git
+cd autoflowops
+bash scripts/setup.sh
+```
+
+The script prompts for an image tag (default `latest`), copies `.env.example` to `.env`, pulls the images and starts the stack. Edit `.env` and change `APP_SECRET_KEY` and `JWT_SECRET_KEY` before any production use.
+
+To run a specific release:
+
+```bash
+IMAGE_TAG=v0.9.0 bash scripts/setup.sh
+# or
+IMAGE_TAG=v0.9.0 make registry-up
+```
+
+### Option B — Build from source
 
 ### Requirements
 
@@ -229,20 +251,24 @@ make format
 ## Makefile Targets
 
 ```bash
-make dev      # docker compose up --build (foreground)
-make up       # docker compose up -d --build (background)
-make down     # docker compose down
-make logs     # docker compose logs -f
-make worker-logs # docker compose logs -f worker
-make test     # run backend + frontend tests
-make lint     # run backend + frontend lint
-make format   # run backend + frontend format
-make seed     # seed demo data into running Docker containers
-make prod-up  # start production stack with Caddy reverse proxy
+make dev           # docker compose up --build (foreground)
+make up            # docker compose up -d --build (background)
+make down          # docker compose down
+make logs          # docker compose logs -f
+make worker-logs   # docker compose logs -f worker
+make test          # run backend + frontend tests
+make lint          # run backend + frontend lint
+make format        # run backend + frontend format
+make seed          # seed demo data into running Docker containers
+make prod-up       # start production stack with Caddy reverse proxy
 make prod-down
 make prod-logs
 make prod-validate
-make setup    # copy .env.example to .env
+make setup         # copy .env.example to .env
+make pull          # pull backend + frontend images from GHCR (IMAGE_TAG=latest)
+make registry-up   # start stack using GHCR images (IMAGE_TAG=latest)
+make registry-down # stop registry-based stack
+make registry-logs # stream logs from registry-based stack
 ```
 
 ---
@@ -307,6 +333,7 @@ autoflowops/
 | Audit log with actor and masked metadata | ✅ Done |
 | User management API and frontend | ✅ Done |
 | Real-time event stream via WebSocket | ✅ Done |
+| Docker image registry (GHCR) + setup script | ✅ Done |
 | Advanced retry policy UI | Planned |
 
 See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.

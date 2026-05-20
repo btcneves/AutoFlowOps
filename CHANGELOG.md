@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-20
+
+### Added
+
+- **Docker image registry** — backend and frontend images published to GitHub Container Registry (`ghcr.io/btcneves/autoflowops-backend`, `ghcr.io/btcneves/autoflowops-frontend`) on every `v*.*.*` tag push via `docker-publish.yml` GitHub Actions workflow
+- **Versioned image tags** — each release produces `vX.Y.Z`, `X.Y` and `latest` tags with full OCI metadata labels
+- **`docker-compose.registry.yml`** — drop-in compose file that starts the full stack using GHCR images; `IMAGE_TAG` environment variable selects the version (defaults to `latest`)
+- **`scripts/setup.sh`** — interactive setup script: checks prerequisites, copies `.env.example`, pulls images from GHCR, starts the stack and waits for health checks; supports `IMAGE_TAG` for non-interactive use
+- **Makefile targets** — `pull`, `registry-up`, `registry-down`, `registry-logs`; `IMAGE_TAG` variable (default `latest`) controls the image version across all registry targets
+- **Build cache** — `docker-publish.yml` uses GitHub Actions cache (`type=gha`) for backend and frontend build stages, reducing repeat-build time significantly
+- **Backend Dockerfile** — added `curl` for health checks, `HEALTHCHECK` instruction, OCI labels, non-root user created earlier in build; `.dockerignore` extended to exclude `tests/`, egg-info, `.sqlite` and `.pyd` files
+- **Frontend Dockerfile** — added OCI labels; `.dockerignore` extended to exclude `src/tests/` and `coverage/`
+
 ## [0.8.0] - 2026-05-20
 
 ### Added
