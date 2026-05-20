@@ -25,6 +25,7 @@
     "reports": "Reports",
     "users": "Users",
     "auditLogs": "Audit Logs",
+    "workspaces": "Workspaces",
     "signOut": "Sign out"
   },
   "login": {
@@ -231,6 +232,8 @@
     "typeTelegram": "Telegram",
     "typeSmtp": "SMTP email",
     "typeCustom": "Custom webhook",
+    "typePagerDuty": "PagerDuty",
+    "typeOpsGenie": "OpsGenie",
     "statusActive": "Active",
     "statusPaused": "Paused",
     "savedConfig": "Saved config: {{config}}",
@@ -253,6 +256,15 @@
     "labelTo": "To",
     "labelTls": "TLS",
     "labelSsl": "SSL",
+    "labelRoutingKey": "Routing Key",
+    "placeholderRoutingKey": "r1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6",
+    "placeholderKeepRoutingKey": "Leave blank to keep current routing key",
+    "labelApiKey": "API Key",
+    "placeholderApiKey": "og-secret-key-abc123",
+    "placeholderKeepApiKey": "Leave blank to keep current API key",
+    "labelOpsGenieRegion": "Region",
+    "labelResponders": "Responders (JSON)",
+    "placeholderResponders": "[{\"type\":\"team\",\"name\":\"ops\"}]",
     "errorName": "Name is required.",
     "errorConfig": "Channel configuration is required.",
     "errorHeaders": "Headers must be valid JSON.",
@@ -415,5 +427,26 @@
   "liveIndicator": {
     "live": "Live",
     "connecting": "Connecting…"
+  },
+  "workspace": {
+    "title": "Workspaces",
+    "subtitle": "Namespace isolation for teams or projects within a single instance.",
+    "selector": "Workspace",
+    "all": "All workspaces",
+    "labelName": "Name",
+    "placeholderName": "Team Alpha",
+    "labelSlug": "Slug",
+    "placeholderSlug": "team-alpha",
+    "create": "Create workspace",
+    "loading": "Loading workspaces…",
+    "error": "Could not load workspaces. Make sure the API is running.",
+    "empty": "No workspaces yet.",
+    "colName": "Name",
+    "colSlug": "Slug",
+    "colDefault": "Default",
+    "colActions": "Actions",
+    "delete": "Delete",
+    "yes": "Yes",
+    "errorRequired": "Name and slug are required."
   }
 }

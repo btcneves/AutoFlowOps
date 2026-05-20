@@ -28,6 +28,9 @@ class Job(Base):
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     retry_delay_seconds: Mapped[int] = mapped_column(Integer, default=60)
     alert_on_failure: Mapped[bool] = mapped_column(Boolean, default=True)
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL")
+    )
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )

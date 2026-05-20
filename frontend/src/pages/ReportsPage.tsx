@@ -27,6 +27,7 @@ function DownloadButtons({ report }: { report: ReportSummaryRead }) {
     { label: 'JSON', value: 'json' },
     { label: 'Markdown', value: 'markdown' },
     { label: 'CSV', value: 'csv' },
+    { label: 'PDF', value: 'pdf' },
   ]
 
   return (

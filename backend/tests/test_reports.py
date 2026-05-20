@@ -244,12 +244,24 @@ async def test_download_report_formats(
     assert "Exported Job" in csv_response.text
 
 
-async def test_download_report_invalid_format(async_client: AsyncClient) -> None:
+async def test_download_report_pdf_format(async_client: AsyncClient) -> None:
     now = datetime.now(UTC)
     created = await _generate_report(async_client, now - timedelta(days=1), now)
     report_id = created.json()["id"]
 
     response = await async_client.get(f"/api/reports/{report_id}/download?format=pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.content[:4] == b"%PDF"
+
+
+async def test_download_report_invalid_format(async_client: AsyncClient) -> None:
+    now = datetime.now(UTC)
+    created = await _generate_report(async_client, now - timedelta(days=1), now)
+    report_id = created.json()["id"]
+
+    response = await async_client.get(f"/api/reports/{report_id}/download?format=xlsx")
 
     assert response.status_code == 422
 

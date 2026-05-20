@@ -5,9 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_admin
+from app.dependencies import get_active_workspace, get_current_user, require_admin
 from app.models.escalation import EscalationEvent, EscalationPolicy, EscalationStep
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.escalation import (
     EscalationEventRead,
     EscalationPolicyCreate,
@@ -99,10 +100,12 @@ async def create_policy(
 async def list_policies(
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[EscalationPolicyRead]:
-    result = await session.execute(
-        select(EscalationPolicy).order_by(EscalationPolicy.created_at.desc())
-    )
+    stmt = select(EscalationPolicy).order_by(EscalationPolicy.created_at.desc())
+    if workspace is not None:
+        stmt = stmt.where(EscalationPolicy.workspace_id == workspace.id)
+    result = await session.execute(stmt)
     policies = result.scalars().all()
     out: list[EscalationPolicyRead] = []
     for policy in policies:

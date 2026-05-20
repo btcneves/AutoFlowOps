@@ -10,6 +10,8 @@ NotificationType = Literal[
     "telegram_message",
     "smtp_email",
     "custom_webhook",
+    "pagerduty",
+    "opsgenie",
 ]
 NotificationStatus = Literal["active", "paused"]
 
@@ -101,5 +103,15 @@ def _validate_channel_config(channel_type: str, config: dict[str, Any]) -> None:
         headers = config.get("headers", {})
         if headers is not None and not isinstance(headers, dict):
             raise ValueError("headers must be an object")
+    elif channel_type == "pagerduty":
+        _require(config, "routing_key")
+    elif channel_type == "opsgenie":
+        _require(config, "api_key")
+        region = config.get("region")
+        if region is not None and region not in ("us", "eu"):
+            raise ValueError("region must be 'us' or 'eu'")
+        responders = config.get("responders")
+        if responders is not None and not isinstance(responders, list):
+            raise ValueError("responders must be a list")
     else:
         raise ValueError("unsupported notification channel type")

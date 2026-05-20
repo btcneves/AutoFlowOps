@@ -3,13 +3,14 @@
 import uuid
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.services.auth import decode_access_token
 
 _bearer = HTTPBearer()
@@ -63,3 +64,26 @@ async def require_operator(
             detail="Operator or admin access required",
         )
     return current_user
+
+
+async def get_active_workspace(
+    x_workspace_id: str | None = Header(default=None),
+    session: AsyncSession = Depends(get_db),
+) -> Workspace | None:
+    if not x_workspace_id:
+        return None
+    try:
+        ws_uuid = uuid.UUID(x_workspace_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Workspace-ID must be a valid UUID",
+        )
+    result = await session.execute(select(Workspace).where(Workspace.id == ws_uuid))
+    workspace = result.scalar_one_or_none()
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+    return workspace

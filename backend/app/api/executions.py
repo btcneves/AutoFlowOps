@@ -5,9 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_active_workspace, get_current_user
 from app.models.execution import Execution
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.schemas.execution import ExecutionRead
 
 router = APIRouter(prefix="/executions", tags=["executions"])
@@ -21,12 +22,15 @@ async def list_executions(
     offset: int = Query(default=0, ge=0),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> list[ExecutionRead]:
     stmt = select(Execution).order_by(Execution.started_at.desc())
     if job_id is not None:
         stmt = stmt.where(Execution.job_id == job_id)
     if status is not None:
         stmt = stmt.where(Execution.status == status)
+    if workspace is not None:
+        stmt = stmt.where(Execution.workspace_id == workspace.id)
     stmt = stmt.offset(offset).limit(limit)
     result = await session.execute(stmt)
     return [ExecutionRead.model_validate(e) for e in result.scalars().all()]

@@ -15,6 +15,7 @@ from app.api import (
     users,
     webhook_receiver,
     webhooks,
+    workspaces,
 )
 from app.dependencies import get_current_user
 
@@ -38,3 +39,4 @@ router.include_router(escalation_policies.router, dependencies=_auth)
 router.include_router(reports.router, dependencies=_auth)
 router.include_router(users.router, dependencies=_auth)
 router.include_router(audit_logs.router, dependencies=_auth)
+router.include_router(workspaces.router, dependencies=_auth)

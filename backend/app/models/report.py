@@ -13,6 +13,9 @@ class Report(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, default=uuid.uuid4
     )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL")
+    )
     name: Mapped[str] = mapped_column(String(255))
     format: Mapped[str] = mapped_column(String(20), default="json")
     period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))

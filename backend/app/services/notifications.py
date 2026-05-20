@@ -85,6 +85,14 @@ def mask_channel_config(channel_type: str, config: dict[str, Any]) -> dict[str, 
             "method": "POST",
             "headers": mask_sensitive_headers(config.get("headers", {}) or {}),
         }
+    if channel_type == "pagerduty":
+        return {"routing_key": _MASK}
+    if channel_type == "opsgenie":
+        return {
+            "api_key": _MASK,
+            "region": config.get("region", "us"),
+            "responders": config.get("responders"),
+        }
     return {}
 
 
@@ -303,6 +311,12 @@ async def _send_channel(
     if channel_type == "custom_webhook":
         await _send_custom_webhook(config, payload)
         return
+    if channel_type == "pagerduty":
+        await _send_pagerduty(config, payload)
+        return
+    if channel_type == "opsgenie":
+        await _send_opsgenie(config, payload)
+        return
     raise ValueError("Unsupported notification channel type")
 
 
@@ -387,6 +401,63 @@ async def _send_custom_webhook(config: dict[str, Any], payload: dict[str, str]) 
     send_payload = {k: v for k, v in payload.items() if not k.startswith("rendered_")}
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.post(url, json=send_payload, headers=headers)
+        response.raise_for_status()
+
+
+async def _send_pagerduty(config: dict[str, Any], payload: dict[str, str]) -> None:
+    routing_key = str(config["routing_key"])
+    url = "https://events.pagerduty.com/v2/enqueue"
+    _check_http_target(url)
+    title = payload.get("rendered_title") or payload["title"]
+    body = payload.get("rendered_body") or payload["message"]
+    severity_map = {"error": "critical", "warning": "warning", "info": "info"}
+    pd_body = {
+        "routing_key": routing_key,
+        "event_action": "trigger",
+        "payload": {
+            "summary": title,
+            "severity": severity_map.get(payload["severity"], "critical"),
+            "source": "AutoFlowOps",
+            "custom_details": {
+                "message": body,
+                "alert_id": payload["alert_id"],
+                "source_type": payload.get("source_type", ""),
+                "source_id": payload.get("source_id", ""),
+            },
+        },
+    }
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        response = await client.post(url, json=pd_body)
+        response.raise_for_status()
+
+
+async def _send_opsgenie(config: dict[str, Any], payload: dict[str, str]) -> None:
+    api_key = str(config["api_key"])
+    region = str(config.get("region") or "us")
+    base_url = (
+        "https://api.eu.opsgenie.com/v2/alerts"
+        if region == "eu"
+        else "https://api.opsgenie.com/v2/alerts"
+    )
+    _check_http_target(base_url)
+    title = payload.get("rendered_title") or payload["title"]
+    body = payload.get("rendered_body") or payload["message"]
+    og_body: dict[str, Any] = {
+        "message": title,
+        "description": body,
+        "source": "AutoFlowOps",
+        "alias": f"autoflowops-{payload['alert_id']}",
+        "tags": [payload["severity"]],
+    }
+    responders = config.get("responders")
+    if responders:
+        og_body["responders"] = responders
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        response = await client.post(
+            base_url,
+            json=og_body,
+            headers={"Authorization": f"GenieKey {api_key}"},
+        )
         response.raise_for_status()
 
 

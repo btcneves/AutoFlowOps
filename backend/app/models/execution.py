@@ -16,6 +16,9 @@ class Execution(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("jobs.id", ondelete="CASCADE"), index=True
     )
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL")
+    )
     trigger_type: Mapped[str] = mapped_column(String(50), default="manual")
     status: Mapped[str] = mapped_column(String(50), default="running")
     started_at: Mapped[datetime] = mapped_column(

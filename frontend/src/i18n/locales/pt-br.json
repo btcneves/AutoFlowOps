@@ -25,6 +25,7 @@
     "reports": "Relatórios",
     "users": "Usuários",
     "auditLogs": "Logs de Auditoria",
+    "workspaces": "Workspaces",
     "signOut": "Sair"
   },
   "login": {
@@ -231,6 +232,8 @@
     "typeTelegram": "Telegram",
     "typeSmtp": "SMTP e-mail",
     "typeCustom": "Webhook personalizado",
+    "typePagerDuty": "PagerDuty",
+    "typeOpsGenie": "OpsGenie",
     "statusActive": "Ativo",
     "statusPaused": "Pausado",
     "savedConfig": "Config salva: {{config}}",
@@ -253,6 +256,15 @@
     "labelTo": "Destinatário",
     "labelTls": "TLS",
     "labelSsl": "SSL",
+    "labelRoutingKey": "Routing Key",
+    "placeholderRoutingKey": "r1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6",
+    "placeholderKeepRoutingKey": "Deixe em branco para manter a routing key atual",
+    "labelApiKey": "API Key",
+    "placeholderApiKey": "og-secret-key-abc123",
+    "placeholderKeepApiKey": "Deixe em branco para manter a API key atual",
+    "labelOpsGenieRegion": "Região",
+    "labelResponders": "Respondedores (JSON)",
+    "placeholderResponders": "[{\"type\":\"team\",\"name\":\"ops\"}]",
     "errorName": "Nome é obrigatório.",
     "errorConfig": "Configuração do canal é obrigatória.",
     "errorHeaders": "Headers devem ser um JSON válido.",
@@ -415,5 +427,26 @@
   "liveIndicator": {
     "live": "Ao vivo",
     "connecting": "Conectando…"
+  },
+  "workspace": {
+    "title": "Workspaces",
+    "subtitle": "Isolamento de namespace para times ou projetos em uma única instância.",
+    "selector": "Workspace",
+    "all": "Todos os workspaces",
+    "labelName": "Nome",
+    "placeholderName": "Time Alpha",
+    "labelSlug": "Slug",
+    "placeholderSlug": "time-alpha",
+    "create": "Criar workspace",
+    "loading": "Carregando workspaces…",
+    "error": "Não foi possível carregar os workspaces. Verifique se a API está em execução.",
+    "empty": "Nenhum workspace criado.",
+    "colName": "Nome",
+    "colSlug": "Slug",
+    "colDefault": "Padrão",
+    "colActions": "Ações",
+    "delete": "Excluir",
+    "yes": "Sim",
+    "errorRequired": "Nome e slug são obrigatórios."
   }
 }
