@@ -1,0 +1,51 @@
+# Caddyfile — AutoFlowOps production reverse proxy
+#
+# Replace "autoflowops.yourdomain.com" with your actual domain.
+# Caddy automatically obtains and renews TLS certificates via Let's Encrypt.
+#
+# Requirements:
+#   - Ports 80 and 443 must be open on the server firewall
+#   - The domain DNS A record must point to this server's public IP
+#   - Valid email in the global options block for Let's Encrypt notifications
+{
+	email webmaster@yourdomain.com
+}
+
+autoflowops.yourdomain.com {
+	# API and OpenAPI documentation — proxied to the backend
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /docs* {
+		reverse_proxy backend:8000
+	}
+
+	handle /redoc* {
+		reverse_proxy backend:8000
+	}
+
+	handle /openapi.json {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else — proxied to the frontend
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Logging
+	log {
+		output stderr
+		format json
+		level INFO
+	}
+}

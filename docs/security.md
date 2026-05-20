@@ -142,12 +142,22 @@ change `ADMIN_PASSWORD` immediately after the first login.
 
 ## Production Recommendations
 
-1. **Deploy behind a reverse proxy** — use nginx, Caddy or Traefik with HTTPS and restrict access to trusted IPs or a VPN.
-2. **Change all placeholder secrets** — update `APP_SECRET_KEY`, `JWT_SECRET_KEY` and database credentials in `.env` before the first run.
-3. **Use strong database credentials** — change the default `autoflowops/autoflowops` PostgreSQL user and password.
-4. **Restrict the Docker network** — do not expose PostgreSQL (port 5432) to the public internet.
-5. **Do not use real tokens in examples** — never include real API keys, tokens or secrets in job configurations used for demos, screenshots or documentation.
+The recommended production path is `docker-compose.prod.yml` + Caddy, documented in [docs/deployment.md](deployment.md). Key security properties of that setup:
+
+- **Caddy terminates TLS** — automatic HTTPS via Let's Encrypt; HTTP redirected to HTTPS.
+- **Security headers** — `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy` set by Caddy.
+- **PostgreSQL not exposed** — port 5432 is absent from `docker-compose.prod.yml`; the database is only reachable from other containers on the internal Docker network.
+- **Backend and frontend not published** — only Caddy (ports 80/443) is reachable from outside Docker.
+
+Additional hardening steps:
+
+1. **Replace all placeholder secrets** — generate strong values for `APP_SECRET_KEY`, `JWT_SECRET_KEY` and `POSTGRES_PASSWORD` using `openssl rand -hex 32` before first run.
+2. **Change the bootstrap admin password** — `ADMIN_PASSWORD` is used only on the first startup. After creating the admin account, use a strong password and change it immediately after first login.
+3. **Do not commit `.env.production`** — it is listed in `.gitignore`; verify it never appears in `git status` output.
+4. **Firewall** — allow only ports 22 (SSH), 80 and 443 from the public internet. Block all other ports at the firewall level.
+5. **Keep Docker and the OS updated** — subscribe to security advisories for Ubuntu, Docker and PostgreSQL 16.
 6. **Review job URLs** — before activating a job that targets an internal service, verify the URL is intentional to prevent accidental SSRF.
+7. **Do not use real tokens in demos** — never include real API keys, tokens or secrets in job configurations used for screenshots or documentation.
 
 ---
 

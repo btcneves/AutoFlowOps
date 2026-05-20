@@ -131,7 +131,7 @@ curl http://localhost:8000/api/health
 Expected:
 
 ```json
-{"status": "ok", "app": "AutoFlowOps", "env": "development"}
+{"status": "ok", "app": "AutoFlowOps", "env": "development", "database": "ok"}
 ```
 
 ### 4. Seed demo data (optional)
@@ -187,8 +187,8 @@ make test
 
 | Suite | Tests | Status |
 | --- | --- | --- |
-| Backend | 109 | Passing |
-| Frontend | 31 | Passing |
+| Backend | 134 | Passing |
+| Frontend | 45 | Passing |
 
 ---
 
@@ -223,6 +223,10 @@ make test     # run backend + frontend tests
 make lint     # run backend + frontend lint
 make format   # run backend + frontend format
 make seed     # seed demo data into running Docker containers
+make prod-up  # start production stack with Caddy reverse proxy
+make prod-down
+make prod-logs
+make prod-validate
 make setup    # copy .env.example to .env
 ```
 
@@ -277,11 +281,13 @@ autoflowops/
 | Authentication (JWT) | ✅ Done |
 | SSRF protection for HTTP jobs | ✅ Done |
 | Webhook rate limiting | ✅ Done |
+| VPS deployment guide | ✅ Done |
+| Caddy reverse proxy + production Compose | ✅ Done |
+| Production health checks and config CI | ✅ Done |
 | Celery + Redis worker | Planned |
 | External notifications (Discord, Telegram, email) | Planned |
 | Real-time logs via WebSocket | Planned |
 | RBAC (role-based access control) | Planned |
-| VPS deployment guide | Planned |
 
 See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.
 

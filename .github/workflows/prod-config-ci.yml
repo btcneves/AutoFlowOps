@@ -1,0 +1,51 @@
+name: Production Config CI
+
+on:
+  push:
+    paths:
+      - "docker-compose.prod.yml"
+      - "Caddyfile"
+      - ".env.production.example"
+      - ".github/workflows/prod-config-ci.yml"
+    branches: [main]
+  pull_request:
+    paths:
+      - "docker-compose.prod.yml"
+      - "Caddyfile"
+      - ".env.production.example"
+      - ".github/workflows/prod-config-ci.yml"
+    branches: [main]
+
+jobs:
+  validate-prod-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create minimal .env.production for syntax validation
+        run: |
+          cat > .env.production << 'EOF'
+          POSTGRES_DB=autoflowops
+          POSTGRES_USER=autoflowops
+          POSTGRES_PASSWORD=ci_placeholder_password
+          APP_SECRET_KEY=ci_placeholder_key_64chars_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          DATABASE_URL=postgresql+psycopg://autoflowops:ci_placeholder@db:5432/autoflowops
+          JWT_SECRET_KEY=ci_placeholder_jwt_64chars_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ADMIN_EMAIL=admin@autoflowops.local
+          ADMIN_PASSWORD=ci_placeholder_admin_password
+          FRONTEND_URL=https://autoflowops.example.com
+          EOF
+
+      - name: Validate docker-compose.prod.yml syntax
+        run: |
+          docker compose -f docker-compose.prod.yml config --quiet
+          echo "docker-compose.prod.yml is valid"
+
+      - name: Validate Caddyfile syntax
+        run: |
+          docker run --rm \
+            -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine \
+            caddy validate --config /etc/caddy/Caddyfile
+          echo "Caddyfile is valid"

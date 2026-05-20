@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-20
+
+### Added
+
+- **Production deployment stack** — `docker-compose.prod.yml` with Caddy on ports 80/443, backend/frontend exposed only inside Docker, private PostgreSQL and service healthchecks
+- **Caddy reverse proxy template** — automatic HTTPS, API/docs routing, frontend routing, JSON logs and baseline security headers
+- **Production environment template** — `.env.production.example` with secure placeholders and production defaults
+- **Production config CI** — GitHub Actions workflow validates `docker-compose.prod.yml` and `Caddyfile` syntax
+- **Production Makefile targets** — `prod-up`, `prod-down`, `prod-logs` and `prod-validate`
+- **Release notes** — dedicated v0.2.0 and v0.3.0 release note documents
+
+### Changed
+
+- `/api/health` now includes a `database` field with `ok` or `error`
+- `docs/deployment.md` rewritten as a full VPS guide with DNS, Docker, Caddy, backups, restore, updates and troubleshooting
+- Security, architecture, roadmap, README and API reference updated with production deployment guidance
+- `.env.production` is explicitly ignored by Git
+
+### Test Results (v0.3.0)
+
+| Suite | Status |
+| --- | --- |
+| Backend lint (ruff) | Clean |
+| Backend tests (pytest) | 134 passing |
+| Frontend tests (Vitest) | 45 passing |
+| Frontend lint (ESLint) | Clean |
+| Frontend build | Success |
+| Production config validation | Compose and Caddyfile valid |
+
 ## [0.2.0] - 2026-05-19
 
 ### Added

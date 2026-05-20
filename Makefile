@@ -1,7 +1,7 @@
 BACKEND_PYTEST ?= $(shell if [ -x backend/.venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
 BACKEND_RUFF ?= $(shell if [ -x backend/.venv/bin/ruff ]; then echo .venv/bin/ruff; else echo ruff; fi)
 
-.PHONY: dev up down logs test lint format setup seed
+.PHONY: dev up down logs test lint format setup seed prod-up prod-down prod-logs prod-validate
 
 setup:
 	@test -f .env || cp .env.example .env && echo ".env created from .env.example"
@@ -32,3 +32,17 @@ format:
 
 seed:
 	docker compose exec backend sh -c 'PYTHONPATH=. python scripts/seed_demo_data.py'
+
+prod-up:
+	docker compose -f docker-compose.prod.yml up -d --build
+
+prod-down:
+	docker compose -f docker-compose.prod.yml down
+
+prod-logs:
+	docker compose -f docker-compose.prod.yml logs -f
+
+prod-validate:
+	docker compose -f docker-compose.prod.yml config --quiet && echo "docker-compose.prod.yml is valid"
+	docker run --rm -v "$$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+	@echo "Caddyfile is valid"
