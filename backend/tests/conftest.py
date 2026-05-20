@@ -41,29 +41,50 @@ async def db_session(test_engine) -> AsyncSession:
         yield session
 
 
-_FAKE_USER = User(
-    id=uuid.uuid4(),
-    email="test@autoflowops.local",
-    name="Test User",
-    password_hash="irrelevant",
-    role="admin",
-    is_active=True,
-)
+def _make_user(role: str) -> User:
+    return User(
+        id=uuid.uuid4(),
+        email=f"{role}@autoflowops.local",
+        name=f"{role.capitalize()} User",
+        password_hash="irrelevant",
+        role=role,
+        is_active=True,
+    )
 
 
-@pytest.fixture
-async def async_client(db_session: AsyncSession) -> AsyncClient:
+_FAKE_ADMIN = _make_user("admin")
+_FAKE_OPERATOR = _make_user("operator")
+_FAKE_VIEWER = _make_user("viewer")
+
+
+def _make_async_client(db_session: AsyncSession, fake_user: User) -> AsyncClient:
     async def override_get_db():
         yield db_session
 
     async def override_get_current_user():
-        return _FAKE_USER
+        return fake_user
 
-    original = app.dependency_overrides.copy()
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = override_get_current_user
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+@pytest.fixture
+async def async_client(db_session: AsyncSession) -> AsyncClient:
+    async with _make_async_client(db_session, _FAKE_ADMIN) as client:
         yield client
-    app.dependency_overrides = original
+    app.dependency_overrides = {}
+
+
+@pytest.fixture
+async def operator_client(db_session: AsyncSession) -> AsyncClient:
+    async with _make_async_client(db_session, _FAKE_OPERATOR) as client:
+        yield client
+    app.dependency_overrides = {}
+
+
+@pytest.fixture
+async def viewer_client(db_session: AsyncSession) -> AsyncClient:
+    async with _make_async_client(db_session, _FAKE_VIEWER) as client:
+        yield client
+    app.dependency_overrides = {}

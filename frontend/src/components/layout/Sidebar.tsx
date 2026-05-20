@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
-const navItems = [
+const baseNavItems = [
   { to: '/', label: 'Dashboard' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/executions', label: 'Executions' },
@@ -13,14 +13,21 @@ const navItems = [
   { to: '/reports', label: 'Reports' },
 ]
 
+const adminNavItems = [
+  { to: '/users', label: 'Users' },
+  { to: '/audit-logs', label: 'Audit Logs' },
+]
+
 export function Sidebar() {
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const navigate = useNavigate()
 
   function handleLogout() {
     logout()
     navigate('/login')
   }
+
+  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems
 
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-gray-200 bg-white px-4 py-6">
@@ -48,6 +55,7 @@ export function Sidebar() {
       {user && (
         <div className="mt-auto border-t border-gray-200 pt-4">
           <p className="truncate text-xs text-gray-500">{user.email}</p>
+          <p className="mt-0.5 text-xs text-gray-400">{user.role}</p>
           <button
             onClick={handleLogout}
             className="mt-1 text-xs text-gray-400 hover:text-gray-600"

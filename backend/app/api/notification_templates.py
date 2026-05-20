@@ -1,16 +1,19 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_user, require_admin
 from app.models.notification_template import NotificationTemplate
+from app.models.user import User
 from app.schemas.notification_template import (
     NotificationTemplateCreate,
     NotificationTemplateRead,
     NotificationTemplateUpdate,
 )
+from app.services.audit import client_ip, log_action
 
 router = APIRouter(prefix="/notification-templates", tags=["notification-templates"])
 
@@ -30,7 +33,9 @@ async def _get_or_404(
 @router.post("", response_model=NotificationTemplateRead, status_code=201)
 async def create_template(
     payload: NotificationTemplateCreate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> NotificationTemplateRead:
     tmpl = NotificationTemplate(
         name=payload.name,
@@ -40,6 +45,17 @@ async def create_template(
         is_default=payload.is_default,
     )
     session.add(tmpl)
+    await session.flush()
+    await log_action(
+        session,
+        action="templates.create",
+        resource_type="notification_template",
+        resource_id=str(tmpl.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": tmpl.name},
+    )
     await session.commit()
     await session.refresh(tmpl)
     return NotificationTemplateRead.model_validate(tmpl)
@@ -48,6 +64,7 @@ async def create_template(
 @router.get("", response_model=list[NotificationTemplateRead])
 async def list_templates(
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> list[NotificationTemplateRead]:
     result = await session.execute(
         select(NotificationTemplate).order_by(NotificationTemplate.created_at.desc())
@@ -59,6 +76,7 @@ async def list_templates(
 async def get_template(
     template_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> NotificationTemplateRead:
     tmpl = await _get_or_404(session, template_id)
     return NotificationTemplateRead.model_validate(tmpl)
@@ -68,12 +86,24 @@ async def get_template(
 async def update_template(
     template_id: uuid.UUID,
     payload: NotificationTemplateUpdate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> NotificationTemplateRead:
     tmpl = await _get_or_404(session, template_id)
     updates = payload.model_dump(exclude_unset=True)
     for field, value in updates.items():
         setattr(tmpl, field, value)
+    await log_action(
+        session,
+        action="templates.update",
+        resource_type="notification_template",
+        resource_id=str(tmpl.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"updated_fields": list(updates.keys())},
+    )
     await session.commit()
     await session.refresh(tmpl)
     return NotificationTemplateRead.model_validate(tmpl)
@@ -82,8 +112,20 @@ async def update_template(
 @router.delete("/{template_id}", status_code=204)
 async def delete_template(
     template_id: uuid.UUID,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> None:
     tmpl = await _get_or_404(session, template_id)
+    await log_action(
+        session,
+        action="templates.delete",
+        resource_type="notification_template",
+        resource_id=str(tmpl.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": tmpl.name},
+    )
     await session.delete(tmpl)
     await session.commit()

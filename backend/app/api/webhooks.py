@@ -2,11 +2,13 @@ import hashlib
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_user, require_operator
+from app.models.user import User
 from app.models.webhook import Webhook, WebhookEvent
 from app.schemas.webhook import (
     WebhookCreate,
@@ -14,6 +16,7 @@ from app.schemas.webhook import (
     WebhookRead,
     WebhookUpdate,
 )
+from app.services.audit import client_ip, log_action
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -33,7 +36,9 @@ async def _get_or_404(session: AsyncSession, webhook_id: uuid.UUID) -> Webhook:
 @router.post("", response_model=WebhookRead, status_code=201)
 async def create_webhook(
     payload: WebhookCreate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> WebhookRead:
     existing = await session.execute(
         select(Webhook).where(Webhook.slug == payload.slug)
@@ -48,13 +53,27 @@ async def create_webhook(
         secret_token_hash=token_hash,
     )
     session.add(wh)
+    await session.flush()
+    await log_action(
+        session,
+        action="webhooks.create",
+        resource_type="webhook",
+        resource_id=str(wh.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": wh.name, "slug": wh.slug},
+    )
     await session.commit()
     await session.refresh(wh)
     return WebhookRead.model_validate(wh)
 
 
 @router.get("", response_model=list[WebhookRead])
-async def list_webhooks(session: AsyncSession = Depends(get_db)) -> list[WebhookRead]:
+async def list_webhooks(
+    session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[WebhookRead]:
     result = await session.execute(select(Webhook).order_by(Webhook.created_at.desc()))
     return [WebhookRead.model_validate(w) for w in result.scalars().all()]
 
@@ -63,6 +82,7 @@ async def list_webhooks(session: AsyncSession = Depends(get_db)) -> list[Webhook
 async def get_webhook(
     webhook_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> WebhookRead:
     wh = await _get_or_404(session, webhook_id)
     return WebhookRead.model_validate(wh)
@@ -72,7 +92,9 @@ async def get_webhook(
 async def update_webhook(
     webhook_id: uuid.UUID,
     payload: WebhookUpdate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> WebhookRead:
     wh = await _get_or_404(session, webhook_id)
     updates = payload.model_dump(exclude_unset=True)
@@ -81,6 +103,16 @@ async def update_webhook(
         wh.secret_token_hash = _hash_token(raw) if raw else None
     for field, value in updates.items():
         setattr(wh, field, value)
+    await log_action(
+        session,
+        action="webhooks.update",
+        resource_type="webhook",
+        resource_id=str(wh.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"updated_fields": list(updates.keys())},
+    )
     await session.commit()
     await session.refresh(wh)
     return WebhookRead.model_validate(wh)
@@ -89,9 +121,21 @@ async def update_webhook(
 @router.delete("/{webhook_id}", status_code=204)
 async def delete_webhook(
     webhook_id: uuid.UUID,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> None:
     wh = await _get_or_404(session, webhook_id)
+    await log_action(
+        session,
+        action="webhooks.delete",
+        resource_type="webhook",
+        resource_id=str(wh.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": wh.name},
+    )
     await session.delete(wh)
     await session.commit()
 
@@ -100,6 +144,7 @@ async def delete_webhook(
 async def list_events(
     webhook_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> list[WebhookEventRead]:
     await _get_or_404(session, webhook_id)
     result = await session.execute(
@@ -117,7 +162,9 @@ async def list_events(
 async def reprocess_event(
     webhook_id: uuid.UUID,
     event_id: uuid.UUID,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> WebhookEventRead:
     await _get_or_404(session, webhook_id)
     result = await session.execute(
@@ -132,6 +179,15 @@ async def reprocess_event(
     event.status = "reprocessed"
     event.processed_at = datetime.now(UTC)
     event.error_message = None
+    await log_action(
+        session,
+        action="webhooks.reprocess_event",
+        resource_type="webhook_event",
+        resource_id=str(event.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+    )
     await session.commit()
     await session.refresh(event)
     return WebhookEventRead.model_validate(event)
