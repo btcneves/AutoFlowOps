@@ -4,7 +4,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-NotificationType = Literal["discord_webhook", "smtp_email", "custom_webhook"]
+NotificationType = Literal[
+    "discord_webhook",
+    "slack_webhook",
+    "telegram_message",
+    "smtp_email",
+    "custom_webhook",
+]
 NotificationStatus = Literal["active", "paused"]
 
 
@@ -76,6 +82,11 @@ def _require(config: dict[str, Any], key: str) -> None:
 def _validate_channel_config(channel_type: str, config: dict[str, Any]) -> None:
     if channel_type == "discord_webhook":
         _require(config, "webhook_url")
+    elif channel_type == "slack_webhook":
+        _require(config, "webhook_url")
+    elif channel_type == "telegram_message":
+        _require(config, "bot_token")
+        _require(config, "chat_id")
     elif channel_type == "smtp_email":
         for key in ("host", "port", "from_email", "to_email"):
             _require(config, key)

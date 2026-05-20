@@ -1,7 +1,8 @@
-"""Notification channel delivery with masked persistence."""
+"""Notification channel delivery with masked persistence and Fernet encryption."""
 
 import asyncio
 import json
+import logging
 import smtplib
 from datetime import UTC, datetime
 from email.message import EmailMessage
@@ -15,20 +16,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.alert import Alert
 from app.models.notification import NotificationChannel, NotificationDelivery
+from app.models.notification_template import NotificationTemplate
 from app.schemas.notification import NotificationChannelRead
+from app.services.credential_cipher import decrypt_config, encrypt_config
 from app.services.masking import mask_sensitive_headers
 from app.services.ssrf_guard import check_url
+
+logger = logging.getLogger(__name__)
 
 _MASK = "***"
 _MAX_ATTEMPTS = 2
 
 
+# ---------------------------------------------------------------------------
+# Config persistence helpers (replaces plain JSON from v0.5.0)
+# ---------------------------------------------------------------------------
+
+
 def load_channel_config(channel: NotificationChannel) -> dict[str, Any]:
-    return json.loads(channel.config_encrypted)
+    """Decrypt channel config. Transparently handles legacy plain-JSON values."""
+    return decrypt_config(channel.config_encrypted)
 
 
 def dump_channel_config(config: dict[str, Any]) -> str:
-    return json.dumps(config, sort_keys=True)
+    """Encrypt config with Fernet and return the ciphertext string."""
+    return encrypt_config(config)
+
+
+# ---------------------------------------------------------------------------
+# Masking helpers (never expose secrets in API responses)
+# ---------------------------------------------------------------------------
 
 
 def mask_url(url: str) -> str:
@@ -41,6 +58,16 @@ def mask_url(url: str) -> str:
 def mask_channel_config(channel_type: str, config: dict[str, Any]) -> dict[str, Any]:
     if channel_type == "discord_webhook":
         return {"webhook_url": mask_url(str(config.get("webhook_url", "")))}
+    if channel_type == "slack_webhook":
+        return {"webhook_url": mask_url(str(config.get("webhook_url", "")))}
+    if channel_type == "telegram_message":
+        raw_token = str(config.get("bot_token", ""))
+        # Show only the numeric bot-id prefix (before the colon), mask the rest
+        token_prefix = raw_token.split(":")[0] if ":" in raw_token else _MASK
+        return {
+            "bot_token": f"{token_prefix}:{_MASK}",
+            "chat_id": config.get("chat_id"),
+        }
     if channel_type == "smtp_email":
         return {
             "host": config.get("host"),
@@ -75,6 +102,71 @@ def channel_to_read(channel: NotificationChannel) -> NotificationChannelRead:
     )
 
 
+# ---------------------------------------------------------------------------
+# Template rendering
+# ---------------------------------------------------------------------------
+
+
+_BUILTIN_TITLE = "{title}"
+_BUILTIN_BODY = "{title}\n\nSeverity: {severity}\n{message}"
+
+
+def _build_template_vars(payload: dict[str, str]) -> dict[str, str]:
+    return {
+        "title": payload.get("title", ""),
+        "severity": payload.get("severity", ""),
+        "message": payload.get("message", ""),
+        "alert_id": payload.get("alert_id", ""),
+        "source_type": payload.get("source_type", ""),
+        "source_id": payload.get("source_id", ""),
+    }
+
+
+async def _resolve_template(
+    session: AsyncSession, severity: str
+) -> tuple[str, str]:
+    """Return (title_template, body_template) for the given severity."""
+    # 1. Exact match on severity_filter
+    result = await session.execute(
+        select(NotificationTemplate)
+        .where(NotificationTemplate.severity_filter == severity)
+        .order_by(NotificationTemplate.created_at.desc())
+        .limit(1)
+    )
+    tmpl = result.scalar_one_or_none()
+    if tmpl:
+        return tmpl.title_template, tmpl.body_template
+
+    # 2. Catch-all template (severity_filter IS NULL)
+    result = await session.execute(
+        select(NotificationTemplate)
+        .where(NotificationTemplate.severity_filter.is_(None))
+        .order_by(
+            NotificationTemplate.is_default.desc(),
+            NotificationTemplate.created_at.desc(),
+        )
+        .limit(1)
+    )
+    tmpl = result.scalar_one_or_none()
+    if tmpl:
+        return tmpl.title_template, tmpl.body_template
+
+    # 3. Built-in fallback
+    return _BUILTIN_TITLE, _BUILTIN_BODY
+
+
+def _render(title_tmpl: str, body_tmpl: str, vars_: dict[str, str]) -> tuple[str, str]:
+    try:
+        return title_tmpl.format(**vars_), body_tmpl.format(**vars_)
+    except KeyError:
+        return vars_["title"], _BUILTIN_BODY.format(**vars_)
+
+
+# ---------------------------------------------------------------------------
+# Alert payload helpers
+# ---------------------------------------------------------------------------
+
+
 def _alert_payload(alert: Alert | None, *, test: bool = False) -> dict[str, str]:
     if alert is None:
         return {
@@ -95,6 +187,11 @@ def _alert_payload(alert: Alert | None, *, test: bool = False) -> dict[str, str]
     }
 
 
+# ---------------------------------------------------------------------------
+# Delivery
+# ---------------------------------------------------------------------------
+
+
 async def send_channel_notification(
     session: AsyncSession,
     channel: NotificationChannel,
@@ -103,6 +200,21 @@ async def send_channel_notification(
     test: bool = False,
 ) -> NotificationDelivery:
     config = load_channel_config(channel)
+    payload = _alert_payload(alert, test=test)
+
+    # Resolve template for rendering rich title/body (used by Slack/Telegram/SMTP)
+    title_tmpl, body_tmpl = await _resolve_template(
+        session, payload.get("severity", "info")
+    )
+    vars_ = _build_template_vars(payload)
+    rendered_title, rendered_body = _render(title_tmpl, body_tmpl, vars_)
+    # Extend payload with rendered versions for channel senders
+    enriched = {
+        **payload,
+        "rendered_title": rendered_title,
+        "rendered_body": rendered_body,
+    }
+
     delivery = NotificationDelivery(
         alert_id=alert.id if alert else None,
         channel_id=channel.id,
@@ -114,7 +226,7 @@ async def send_channel_notification(
     error: str | None = None
     for attempt in range(_MAX_ATTEMPTS):
         try:
-            await _send_channel(channel.type, config, _alert_payload(alert, test=test))
+            await _send_channel(channel.type, config, enriched)
             delivery.status = "success"
             delivery.sent_at = datetime.now(UTC)
             error = None
@@ -138,9 +250,22 @@ async def dispatch_alert_notifications(
     session: AsyncSession,
     alert: Alert,
 ) -> list[NotificationDelivery]:
+    """Dispatch alert to notification channels.
+
+    If active escalation policies exist, uses escalation dispatch (step 0 only
+    for immediate channels; deferred steps are handled by the escalation scheduler).
+    Falls back to dispatching all active channels when no policies are configured.
+    """
     if alert.severity != "error":
         return []
 
+    from app.services.escalation import dispatch_via_escalation_policies
+
+    used_escalation = await dispatch_via_escalation_policies(session, alert)
+    if used_escalation is not None:
+        return used_escalation
+
+    # No active escalation policies — dispatch to all active channels directly
     result = await session.execute(
         select(NotificationChannel)
         .where(NotificationChannel.status == "active")
@@ -153,6 +278,11 @@ async def dispatch_alert_notifications(
     return deliveries
 
 
+# ---------------------------------------------------------------------------
+# Channel senders
+# ---------------------------------------------------------------------------
+
+
 async def _send_channel(
     channel_type: str,
     config: dict[str, Any],
@@ -160,6 +290,12 @@ async def _send_channel(
 ) -> None:
     if channel_type == "discord_webhook":
         await _send_discord(config, payload)
+        return
+    if channel_type == "slack_webhook":
+        await _send_slack(config, payload)
+        return
+    if channel_type == "telegram_message":
+        await _send_telegram(config, payload)
         return
     if channel_type == "smtp_email":
         await _send_smtp(config, payload)
@@ -173,12 +309,14 @@ async def _send_channel(
 async def _send_discord(config: dict[str, Any], payload: dict[str, str]) -> None:
     url = str(config["webhook_url"])
     _check_http_target(url)
-    body = {
+    title = payload.get("rendered_title") or payload["title"]
+    body = payload.get("rendered_body") or payload["message"]
+    discord_body = {
         "content": None,
         "embeds": [
             {
-                "title": payload["title"],
-                "description": payload["message"],
+                "title": title,
+                "description": body,
                 "fields": [
                     {"name": "Severity", "value": payload["severity"], "inline": True},
                     {"name": "Alert", "value": payload["alert_id"], "inline": True},
@@ -187,7 +325,57 @@ async def _send_discord(config: dict[str, Any], payload: dict[str, str]) -> None
         ],
     }
     async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.post(url, json=body)
+        response = await client.post(url, json=discord_body)
+        response.raise_for_status()
+
+
+async def _send_slack(config: dict[str, Any], payload: dict[str, str]) -> None:
+    url = str(config["webhook_url"])
+    _check_http_target(url)
+    title = payload.get("rendered_title") or payload["title"]
+    body = payload.get("rendered_body") or payload["message"]
+    severity = payload["severity"]
+    if severity == "error":
+        color = "#cc0000"
+    elif severity == "warning":
+        color = "#e8a800"
+    else:
+        color = "#36a64f"
+    slack_body = {
+        "attachments": [
+            {
+                "color": color,
+                "title": title,
+                "text": body,
+                "fields": [
+                    {"title": "Severity", "value": severity, "short": True},
+                    {"title": "Alert ID", "value": payload["alert_id"], "short": True},
+                ],
+                "footer": "AutoFlowOps",
+            }
+        ]
+    }
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        response = await client.post(url, json=slack_body)
+        response.raise_for_status()
+
+
+async def _send_telegram(config: dict[str, Any], payload: dict[str, str]) -> None:
+    bot_token = str(config["bot_token"])
+    chat_id = str(config["chat_id"])
+    title = payload.get("rendered_title") or payload["title"]
+    body = payload.get("rendered_body") or payload["message"]
+    severity = payload["severity"]
+    text = f"*{title}*\n\nSeverity: {severity}\n{body}"
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    _check_http_target("https://api.telegram.org")
+    telegram_body = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown",
+    }
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        response = await client.post(url, json=telegram_body)
         response.raise_for_status()
 
 
@@ -195,8 +383,10 @@ async def _send_custom_webhook(config: dict[str, Any], payload: dict[str, str]) 
     url = str(config["url"])
     _check_http_target(url)
     headers = config.get("headers", {}) or {}
+    # Send the base payload keys (without rendered_* internals)
+    send_payload = {k: v for k, v in payload.items() if not k.startswith("rendered_")}
     async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.post(url, json=payload, headers=headers)
+        response = await client.post(url, json=send_payload, headers=headers)
         response.raise_for_status()
 
 
@@ -205,25 +395,26 @@ async def _send_smtp(config: dict[str, Any], payload: dict[str, str]) -> None:
 
 
 def _send_smtp_sync(config: dict[str, Any], payload: dict[str, str]) -> None:
+    title = payload.get("rendered_title") or payload["title"]
+    body = payload.get("rendered_body") or payload["message"]
     message = EmailMessage()
     message["Subject"] = (
-        f"[AutoFlowOps] {payload['severity'].upper()}: {payload['title']}"
+        f"[AutoFlowOps] {payload['severity'].upper()}: {title}"
     )
     message["From"] = str(config["from_email"])
     message["To"] = str(config["to_email"])
     message.set_content(
         "\n".join(
             [
-                payload["title"],
+                title,
                 "",
                 f"Severity: {payload['severity']}",
-                f"Message: {payload['message']}",
+                f"Message: {body}",
                 f"Alert: {payload['alert_id']}",
                 f"Source: {payload['source_type']} {payload['source_id']}".strip(),
             ]
         )
     )
-
     host = str(config["host"])
     port = int(config["port"])
     use_ssl = bool(config.get("use_ssl", False))
@@ -237,6 +428,11 @@ def _send_smtp_sync(config: dict[str, Any], payload: dict[str, str]) -> None:
         if username and password:
             smtp.login(str(username), str(password))
         smtp.send_message(message)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _check_http_target(url: str) -> None:
@@ -253,6 +449,21 @@ def _mask_error(error: str, config: dict[str, Any]) -> str:
         elif isinstance(value, dict):
             values.extend(str(v) for v in value.values() if isinstance(v, str))
     for value in values:
-        if value:
+        if len(value) > 4:  # skip short strings to avoid false positives
             masked = masked.replace(value, _MASK)
     return masked[:500]
+
+
+# Re-export dump_channel_config for use in API layer
+__all__ = [
+    "channel_to_read",
+    "dispatch_alert_notifications",
+    "dump_channel_config",
+    "load_channel_config",
+    "mask_channel_config",
+    "send_channel_notification",
+]
+
+
+def _log_json(obj: Any) -> str:
+    return json.dumps(obj)

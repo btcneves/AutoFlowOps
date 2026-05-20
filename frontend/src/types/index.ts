@@ -52,6 +52,8 @@ export interface AlertRead {
 
 export type NotificationChannelType =
   | 'discord_webhook'
+  | 'slack_webhook'
+  | 'telegram_message'
   | 'smtp_email'
   | 'custom_webhook'
 export type NotificationChannelStatus = 'active' | 'paused'
@@ -208,6 +210,56 @@ export interface ExecutionRead {
   error_message: string | null
   retry_attempt: number
   created_at: string
+}
+
+// Notification templates
+export interface NotificationTemplateRead {
+  id: string
+  name: string
+  severity_filter: string | null
+  title_template: string
+  body_template: string
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface NotificationTemplatePayload {
+  name: string
+  severity_filter?: string | null
+  title_template?: string
+  body_template?: string
+  is_default?: boolean
+}
+
+// Escalation policies
+export interface EscalationStepRead {
+  id: string
+  policy_id: string
+  step_order: number
+  channel_id: string
+  delay_minutes: number
+}
+
+export interface EscalationStepPayload {
+  channel_id: string
+  step_order: number
+  delay_minutes: number
+}
+
+export interface EscalationPolicyRead {
+  id: string
+  name: string
+  is_active: boolean
+  steps: EscalationStepRead[]
+  created_at: string
+  updated_at: string
+}
+
+export interface EscalationPolicyPayload {
+  name: string
+  is_active?: boolean
+  steps?: EscalationStepPayload[]
 }
 
 // Auth
