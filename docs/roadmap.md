@@ -11,6 +11,7 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 | **Stable self-hosted release** | Consolidates the complete AutoFlowOps feature set into the first major release: jobs, executions, webhooks, alerts, reports, notifications, RBAC, audit log, real-time events, worker queue, Docker Compose and GHCR distribution |
 | **Version alignment** | Backend package metadata, `/api/version`, frontend package metadata and lockfile report `1.0.0` |
 | **Release packaging** | Dedicated v1.0.0 release notes, setup examples pinned to `v1.0.0`, and Docker publish workflow producing both `vX.Y.Z` and semver image tags |
+| **Advanced retry policy UI** | Job form exposes retry count (0–10) and retry delay; job detail page shows retry config cards and per-execution attempt badge; execution table and detail page surface `retry_attempt` |
 
 ---
 
@@ -178,7 +179,7 @@ These features are planned but not yet in active development.
 | **Additional notification providers** | PagerDuty, OpsGenie and richer provider-specific delivery options |
 | **Real-time logs** | ~~Delivered in v0.8.0~~ |
 | **RBAC** | ~~Delivered in v0.7.0~~ |
-| **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |
+| **Advanced retry policy UI** | ~~Delivered in v1.0.0~~ |
 | **PDF reports** | Export operational reports as PDF in addition to JSON, Markdown and CSV |
 | **Multi-workspace** | Namespace isolation for teams or projects within a single instance |
 | **Docker image registry** | ~~Delivered in v0.9.0~~ |

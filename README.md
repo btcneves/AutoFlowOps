@@ -341,7 +341,7 @@ autoflowops/
 | User management API and frontend | ✅ Done |
 | Real-time event stream via WebSocket | ✅ Done |
 | Docker image registry (GHCR) + setup script | ✅ Done |
-| Advanced retry policy UI | Planned |
+| Advanced retry policy UI | ✅ Done |
 
 See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.
 

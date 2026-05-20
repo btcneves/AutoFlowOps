@@ -32,6 +32,13 @@ function ExecutionRow({ exc }: { exc: ExecutionRead }) {
         <StatusPill status={exc.status} />
       </td>
       <td className="py-2 pr-4 text-xs text-gray-500">
+        {exc.retry_attempt > 0 ? (
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            #{exc.retry_attempt}
+          </span>
+        ) : '—'}
+      </td>
+      <td className="py-2 pr-4 text-xs text-gray-500">
         {exc.duration_ms !== null ? `${exc.duration_ms} ms` : '—'}
       </td>
       <td className="py-2 pr-4 text-xs text-gray-500">{exc.response_status_code ?? '—'}</td>
@@ -121,12 +128,14 @@ export function JobDetailPage() {
       </div>
 
       {/* Info cards */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {[
           { label: 'Status', value: <span className="inline-flex"><StatusPill status={job.status} /></span> },
           { label: 'Method', value: <code className="text-xs font-mono">{job.method}</code> },
           { label: 'Schedule', value: job.schedule_type },
           { label: 'Timeout', value: `${job.timeout_seconds}s` },
+          { label: 'Retries', value: job.retry_count === 0 ? 'None' : `${job.retry_count}×` },
+          { label: 'Retry delay', value: job.retry_count === 0 ? '—' : `${job.retry_delay_seconds}s` },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs text-gray-500">{label}</p>
@@ -170,6 +179,7 @@ export function JobDetailPage() {
                 <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
                   <th className="py-2 pl-4 pr-4">Started</th>
                   <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Attempt</th>
                   <th className="py-2 pr-4">Duration</th>
                   <th className="py-2 pr-4">HTTP</th>
                   <th className="py-2 pr-4">Error</th>
