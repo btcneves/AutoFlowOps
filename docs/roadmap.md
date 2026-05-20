@@ -22,6 +22,20 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.4.0)
+
+| Feature | Details |
+| --- | --- |
+| **Celery worker** | Dedicated worker process executes HTTP jobs outside the API process |
+| **Redis queue** | Redis broker/result backend configured with `REDIS_URL` |
+| **Queued manual runs** | `POST /api/jobs/{id}/run` creates a `queued` execution and dispatches a Celery task |
+| **Queued scheduled runs** | APScheduler keeps schedule timing but dispatches work to the queue |
+| **Retry states** | Executions can move through `queued`, `running`, `retrying`, `success`, `failure` and `timeout` |
+| **Worker healthchecks** | Development and production Compose files include Redis and worker healthchecks |
+| **Worker tests** | Backend tests cover enqueue, worker execution, final failure alerts and retrying state |
+
+---
+
 ## Completed (v0.2.0)
 
 | Feature | Details |
@@ -64,11 +78,10 @@ These features are planned but not yet in active development.
 
 | Feature | Description |
 | --- | --- |
-| **Celery + Redis worker** | Move job execution to a dedicated worker process; enables parallel execution and better scalability |
 | **External notifications** | Discord webhooks, Telegram messages, email (SMTP) on job failure or alert creation |
 | **Real-time logs** | WebSocket connection for live execution log streaming in the frontend |
 | **RBAC** | Role-based access control — admin, operator and read-only roles |
-| **Retry logic** | Configurable retry count and delay for failed HTTP jobs |
+| **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |
 | **PDF reports** | Export operational reports as PDF in addition to JSON, Markdown and CSV |
 | **Multi-workspace** | Namespace isolation for teams or projects within a single instance |
 | **Docker image registry** | Publish versioned images to GitHub Container Registry for direct pull |

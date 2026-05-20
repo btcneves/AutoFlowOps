@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     webhook_rate_limit_per_minute: int = 60
     api_rate_limit_per_minute: int = 120
 
+    # Background job execution
+    redis_url: str = "redis://redis:6379/0"
+    job_execution_mode: str = "celery"
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

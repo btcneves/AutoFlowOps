@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.job import Job
 from app.schemas.execution import ExecutionRead
 from app.schemas.job import JobCreate, JobRead, JobUpdate
-from app.services.http_runner import run_job_http
+from app.services.job_queue import enqueue_job_execution
 from app.services.masking import mask_sensitive_headers
 from app.services.scheduler import schedule_job, unschedule_job
 
@@ -139,7 +139,7 @@ async def run_job(
     job = await _get_or_404(session, job_id)
     if job.type != "http":
         raise HTTPException(status_code=501, detail="Only HTTP jobs are supported")
-    execution = await run_job_http(job, session, trigger_type="manual")
+    execution = await enqueue_job_execution(job, session, trigger_type="manual")
     return ExecutionRead.model_validate(execution)
 
 

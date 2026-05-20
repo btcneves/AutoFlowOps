@@ -7,6 +7,7 @@
 #   - Caddy reverse proxy handles TLS and routes /api/* to backend
 #   - Backend and frontend are NOT published directly to the host
 #   - PostgreSQL is NOT published outside the internal Docker network
+#   - Redis is NOT published outside the internal Docker network
 #   - All services use restart: always
 #   - Healthchecks are defined for all services
 #   - Frontend is built with VITE_API_BASE_URL="" (same-origin via Caddy)
@@ -54,12 +55,37 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - autoflowops
+
+  worker:
+    build:
+      context: ./backend
+    command: celery -A app.worker.celery_app worker --loglevel=INFO
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      APP_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping -d celery@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - autoflowops
 
@@ -97,8 +123,22 @@ services:
     networks:
       - autoflowops
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - autoflowops
+
 volumes:
   postgres_data:
+  redis_data:
   caddy_data:
   caddy_config:
 

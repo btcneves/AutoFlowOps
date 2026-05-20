@@ -1,7 +1,8 @@
 """Unit and integration tests for the scheduler service."""
 
 import uuid
-from unittest.mock import MagicMock
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from apscheduler.triggers.cron import CronTrigger
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.job import Job
 from app.services.scheduler import (
     _parse_trigger,
+    _run_scheduled_job,
     get_scheduler,
     load_scheduled_jobs,
     schedule_job,
@@ -32,6 +34,14 @@ def _make_mock_job(**kwargs) -> MagicMock:
     for k, v in defaults.items():
         setattr(job, k, v)
     return job
+
+
+def _session_factory(session: AsyncSession):
+    @asynccontextmanager
+    async def factory():
+        yield session
+
+    return factory
 
 
 # --- _parse_trigger ---
@@ -176,3 +186,33 @@ async def test_load_scheduled_jobs_cron(db_session: AsyncSession) -> None:
     await load_scheduled_jobs(db_session)
 
     assert get_scheduler().get_job(str(job.id)) is not None
+
+
+async def test_scheduled_job_enqueues_execution(
+    db_session: AsyncSession,
+    monkeypatch,
+) -> None:
+    job = Job(
+        name="Enqueued Scheduled Job",
+        type="http",
+        method="GET",
+        url="http://example.com/scheduled",
+        status="active",
+        schedule_type="interval",
+        schedule_expression="60",
+    )
+    db_session.add(job)
+    await db_session.commit()
+    await db_session.refresh(job)
+
+    enqueue = AsyncMock()
+    monkeypatch.setattr(
+        "app.database.async_session_factory",
+        _session_factory(db_session),
+    )
+    monkeypatch.setattr("app.services.job_queue.enqueue_job_execution", enqueue)
+
+    await _run_scheduled_job(str(job.id))
+
+    enqueue.assert_awaited_once()
+    assert enqueue.await_args.kwargs["trigger_type"] == "scheduled"
