@@ -1,25 +1,27 @@
-## Objective
+## Summary
 
-<!-- What does this PR change and why? -->
+<!-- Describe what this PR changes and why. -->
 
-## Changes
+## Type of change
 
-<!-- Key files and what changed. -->
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Refactor
+- [ ] Documentation
+- [ ] CI / infrastructure
 
-## Test Plan
+## How was this tested?
 
-<!-- How was this verified? Commands run, cases covered. -->
+<!-- Commands run, test cases added or updated, manual steps. -->
+
+## Checklist
+
+- [ ] `make test` passes locally
+- [ ] `make lint` passes locally
+- [ ] New or changed behaviour is covered by tests
+- [ ] Documentation updated if needed (README, API reference, etc.)
+- [ ] No secrets, credentials, or local paths included
 
 ## Notes
 
-<!-- Migration steps, known limitations, or relevant context. Leave blank if none. -->
-
----
-
-### Public Repository Safety Checklist
-
-- [ ] All included content is publication-ready and meets the project's open-source standards
-- [ ] No untracked development files, credentials, local paths, or temporary outputs are included
-- [ ] Documentation, commits, images, and release notes reflect the maintainer's work directly
-- [ ] The contribution reads as the work of a professional open-source maintainer
-- [ ] `make lint` and `make test` pass
+<!-- Breaking changes, migration steps, or anything reviewers should know. Leave blank if none. -->
