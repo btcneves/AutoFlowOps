@@ -77,6 +77,10 @@ def test_all_tables_registered():
         "reports",
         "notification_channels",
         "notification_deliveries",
+        "notification_templates",
+        "escalation_policies",
+        "escalation_steps",
+        "escalation_events",
     }
     assert expected == table_names
 
@@ -96,6 +100,10 @@ async def test_create_all_tables(sqlite_engine):
         "reports",
         "notification_channels",
         "notification_deliveries",
+        "notification_templates",
+        "escalation_policies",
+        "escalation_steps",
+        "escalation_events",
     }
 
 

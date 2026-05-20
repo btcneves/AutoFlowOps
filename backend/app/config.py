@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     job_execution_mode: str = "celery"
 
+    # Notification credential encryption (Fernet key, base64-encoded 32 bytes).
+    # Generate via: from cryptography.fernet import Fernet; Fernet.generate_key()
+    # If absent, derived from app_secret_key (dev/test only — not production-safe).
+    notification_encryption_key: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

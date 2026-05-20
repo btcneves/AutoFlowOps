@@ -9,7 +9,9 @@ import { JobDetailPage } from './pages/JobDetailPage'
 import { JobFormPage } from './pages/JobFormPage'
 import { JobsPage } from './pages/JobsPage'
 import { LoginPage } from './pages/LoginPage'
+import { EscalationPoliciesPage } from './pages/EscalationPoliciesPage'
 import { NotificationChannelsPage } from './pages/NotificationChannelsPage'
+import { NotificationTemplatesPage } from './pages/NotificationTemplatesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { WebhooksPage } from './pages/WebhooksPage'
 
@@ -37,6 +39,8 @@ export const router = createBrowserRouter(
         { path: 'webhooks', element: <WebhooksPage /> },
         { path: 'alerts', element: <AlertsPage /> },
         { path: 'notifications', element: <NotificationChannelsPage /> },
+        { path: 'notification-templates', element: <NotificationTemplatesPage /> },
+        { path: 'escalation-policies', element: <EscalationPoliciesPage /> },
         { path: 'reports', element: <ReportsPage /> },
       ],
     },

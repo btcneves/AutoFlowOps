@@ -108,6 +108,27 @@ def unschedule_job(job_id: uuid.UUID) -> None:
         logger.info("Unscheduled job %s", job_id)
 
 
+async def _check_escalation_events() -> None:
+    from app.database import async_session_factory
+    from app.services.escalation import process_pending_escalation_events
+
+    async with async_session_factory() as session:
+        processed = await process_pending_escalation_events(session)
+        if processed:
+            logger.info("Processed %d escalation event(s)", processed)
+
+
+def register_escalation_checker() -> None:
+    _scheduler.add_job(
+        _check_escalation_events,
+        trigger=IntervalTrigger(seconds=60),
+        id="escalation_checker",
+        replace_existing=True,
+        name="Escalation event checker",
+    )
+    logger.info("Escalation checker registered (interval=60s)")
+
+
 async def load_scheduled_jobs(session: AsyncSession) -> None:
     result = await session.execute(
         select(Job).where(

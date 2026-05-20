@@ -11,7 +11,11 @@ from app.api.router import router
 from app.config import settings
 from app.database import async_session_factory, engine
 from app.services.auth import bootstrap_admin
-from app.services.scheduler import get_scheduler, load_scheduled_jobs
+from app.services.scheduler import (
+        get_scheduler,
+        load_scheduled_jobs,
+        register_escalation_checker,
+    )
 
 logging.basicConfig(level=settings.log_level.upper())
 logger = logging.getLogger(__name__)
@@ -41,6 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await load_scheduled_jobs(session)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not load scheduled jobs at startup: %s", exc)
+    register_escalation_checker()
     scheduler.start()
     logger.info("Scheduler started")
 
