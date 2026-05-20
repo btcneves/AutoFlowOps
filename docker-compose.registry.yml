@@ -4,7 +4,7 @@
 # No local build is required — images are pulled on first run.
 #
 # Usage:
-#   IMAGE_TAG=v0.9.0 docker compose -f docker-compose.registry.yml up -d
+#   IMAGE_TAG=v1.0.0 docker compose -f docker-compose.registry.yml up -d
 #   IMAGE_TAG=latest  docker compose -f docker-compose.registry.yml up -d
 #
 # IMAGE_TAG defaults to "latest". Set it to a specific release tag to pin the version.

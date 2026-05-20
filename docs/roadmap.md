@@ -4,6 +4,16 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v1.0.0)
+
+| Feature | Details |
+| --- | --- |
+| **Stable self-hosted release** | Consolidates the complete AutoFlowOps feature set into the first major release: jobs, executions, webhooks, alerts, reports, notifications, RBAC, audit log, real-time events, worker queue, Docker Compose and GHCR distribution |
+| **Version alignment** | Backend package metadata, `/api/version`, frontend package metadata and lockfile report `1.0.0` |
+| **Release packaging** | Dedicated v1.0.0 release notes, setup examples pinned to `v1.0.0`, and Docker publish workflow producing both `vX.Y.Z` and semver image tags |
+
+---
+
 ## Completed (v0.9.0)
 
 | Feature | Details |

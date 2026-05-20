@@ -44,7 +44,7 @@ Response `200 OK`:
 
 ```json
 {
-  "version": "0.5.0",
+  "version": "1.0.0",
   "app": "AutoFlowOps"
 }
 ```
