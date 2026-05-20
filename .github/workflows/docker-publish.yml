@@ -34,6 +34,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/autoflowops-backend
           tags: |
+            type=raw,value=${{ github.ref_name }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
@@ -71,6 +72,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/autoflowops-frontend
           tags: |
+            type=raw,value=${{ github.ref_name }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest

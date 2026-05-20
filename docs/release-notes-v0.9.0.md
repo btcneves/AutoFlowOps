@@ -49,7 +49,7 @@ An interactive setup script for first-time installation:
 
 1. Checks that Docker and Docker Compose are installed
 2. Copies `.env.example` to `.env` (if not already present)
-3. Prompts for an image tag (default: `latest`; skipped when `IMAGE_TAG` is set)
+3. Asks for an image tag (default: `latest`; skipped when `IMAGE_TAG` is set)
 4. Pulls backend and frontend images from GHCR
 5. Starts the stack via `docker-compose.registry.yml`
 6. Waits for the backend health endpoint (`/api/health`) and frontend to respond

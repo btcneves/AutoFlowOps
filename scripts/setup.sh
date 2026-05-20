@@ -3,8 +3,8 @@
 # Downloads pre-built images from GHCR, configures environment and starts the stack.
 #
 # Usage:
-#   bash scripts/setup.sh              # interactive, prompts for image tag
-#   IMAGE_TAG=v0.9.0 bash scripts/setup.sh   # non-interactive, use specific tag
+#   bash scripts/setup.sh              # interactive, asks for image tag
+#   IMAGE_TAG=v1.0.0 bash scripts/setup.sh   # non-interactive, use specific tag
 #   IMAGE_TAG=latest  bash scripts/setup.sh   # non-interactive, use latest
 
 set -euo pipefail
@@ -55,7 +55,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ -z "${TAG}" ]; then
-  printf '\033[0;32m[setup]\033[0m Image tag to use (e.g. v0.9.0, latest) [latest]: '
+  printf '\033[0;32m[setup]\033[0m Image tag to use (e.g. v1.0.0, latest) [latest]: '
   read -r TAG
   TAG="${TAG:-latest}"
 fi

@@ -1,7 +1,7 @@
 BACKEND_PYTEST ?= $(shell if [ -x backend/.venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
 BACKEND_RUFF ?= $(shell if [ -x backend/.venv/bin/ruff ]; then echo .venv/bin/ruff; else echo ruff; fi)
 
-# Registry image tag for pull/registry-up targets. Override: IMAGE_TAG=v0.9.0 make pull
+# Registry image tag for pull/registry-up targets. Override: IMAGE_TAG=v1.0.0 make pull
 IMAGE_TAG ?= latest
 
 .PHONY: dev up down logs worker-logs test lint format setup seed \

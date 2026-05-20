@@ -116,14 +116,14 @@ cd autoflowops
 bash scripts/setup.sh
 ```
 
-The script prompts for an image tag (default `latest`), copies `.env.example` to `.env`, pulls the images and starts the stack. Edit `.env` and change `APP_SECRET_KEY` and `JWT_SECRET_KEY` before any production use.
+The script asks for an image tag (default `latest`), copies `.env.example` to `.env`, pulls the images and starts the stack. Edit `.env` and change `APP_SECRET_KEY` and `JWT_SECRET_KEY` before any production use.
 
 To run a specific release:
 
 ```bash
-IMAGE_TAG=v0.9.0 bash scripts/setup.sh
+IMAGE_TAG=v1.0.0 bash scripts/setup.sh
 # or
-IMAGE_TAG=v0.9.0 make registry-up
+IMAGE_TAG=v1.0.0 make registry-up
 ```
 
 ### Option B — Build from source

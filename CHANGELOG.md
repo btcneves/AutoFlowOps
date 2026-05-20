@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-20
+
+### Added
+
+- **Stable self-hosted release** — consolidates all platform capabilities delivered from v0.1.0 through v0.9.0 into the first production-oriented major release.
+- **Version alignment** — backend package metadata, `/api/version`, frontend package metadata and lockfile now report `1.0.0`.
+- **Release notes** — `docs/release-notes-v1.0.0.md` documents the full feature set, validation plan, safety checklist, known limitations and next steps for the official release.
+
+### Changed
+
+- **GHCR release tags** — Docker publish workflow now pushes both the exact Git tag (`vX.Y.Z`) and semver aliases (`X.Y.Z`, `X.Y`, `latest`) for backend and frontend images.
+- **Registry setup examples** — setup script, Makefile comment, README and deployment guide now use `v1.0.0` as the pinned release example.
+
 ## [0.9.0] - 2026-05-20
 
 ### Added
