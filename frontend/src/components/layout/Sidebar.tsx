@@ -1,13 +1,24 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
+  { to: '/jobs', label: 'Jobs' },
+  { to: '/executions', label: 'Executions' },
   { to: '/webhooks', label: 'Webhooks' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/reports', label: 'Reports' },
 ]
 
 export function Sidebar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/login')
+  }
+
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-gray-200 bg-white px-4 py-6">
       <div className="mb-8">
@@ -31,6 +42,17 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      {user && (
+        <div className="mt-auto border-t border-gray-200 pt-4">
+          <p className="truncate text-xs text-gray-500">{user.email}</p>
+          <button
+            onClick={handleLogout}
+            className="mt-1 text-xs text-gray-400 hover:text-gray-600"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
     </aside>
   )
 }

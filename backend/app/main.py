@@ -10,6 +10,7 @@ from app import __version__
 from app.api.router import router
 from app.config import settings
 from app.database import async_session_factory, engine
+from app.services.auth import bootstrap_admin
 from app.services.scheduler import get_scheduler, load_scheduled_jobs
 
 logging.basicConfig(level=settings.log_level.upper())
@@ -27,6 +28,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Database connection OK")
     except Exception as exc:  # noqa: BLE001
         logger.warning("Database not available at startup: %s", exc)
+
+    try:
+        async with async_session_factory() as session:
+            await bootstrap_admin(session)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not bootstrap admin user: %s", exc)
 
     scheduler = get_scheduler()
     try:

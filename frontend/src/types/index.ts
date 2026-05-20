@@ -82,3 +82,102 @@ export interface ReportSummaryRead {
 export interface ReportRead extends ReportSummaryRead {
   content: string | null
 }
+
+// Jobs
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+export type ScheduleType = 'manual' | 'interval' | 'cron'
+export type JobStatus = 'active' | 'paused'
+
+export interface JobRead {
+  id: string
+  name: string
+  description: string | null
+  type: string
+  status: JobStatus
+  schedule_type: ScheduleType
+  schedule_expression: string | null
+  method: HttpMethod | null
+  url: string | null
+  headers_masked: Record<string, string> | null
+  timeout_seconds: number
+  retry_count: number
+  retry_delay_seconds: number
+  alert_on_failure: boolean
+  created_at: string
+  updated_at: string
+  last_run_at: string | null
+  next_run_at: string | null
+}
+
+export interface JobCreate {
+  name: string
+  description?: string
+  type?: 'http'
+  method: HttpMethod
+  url: string
+  headers?: Record<string, string>
+  body?: string
+  schedule_type: ScheduleType
+  schedule_expression?: string
+  timeout_seconds?: number
+  retry_count?: number
+  retry_delay_seconds?: number
+  alert_on_failure?: boolean
+}
+
+export interface JobUpdate {
+  name?: string
+  description?: string
+  method?: HttpMethod
+  url?: string
+  headers?: Record<string, string>
+  body?: string
+  schedule_type?: ScheduleType
+  schedule_expression?: string
+  timeout_seconds?: number
+  retry_count?: number
+  retry_delay_seconds?: number
+  alert_on_failure?: boolean
+  status?: JobStatus
+}
+
+// Executions
+export interface ExecutionRead {
+  id: string
+  job_id: string
+  trigger_type: string
+  status: string
+  started_at: string
+  finished_at: string | null
+  duration_ms: number | null
+  request_method: string | null
+  request_url: string | null
+  request_headers_masked: string | null
+  request_body_masked: string | null
+  response_status_code: number | null
+  response_body_preview: string | null
+  error_message: string | null
+  retry_attempt: number
+  created_at: string
+}
+
+// Auth
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface TokenResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+}
+
+export interface UserRead {
+  id: string
+  email: string
+  name: string
+  role: string
+  is_active: boolean
+  created_at: string
+}

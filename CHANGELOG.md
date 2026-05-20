@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-19
+
+### Added
+
+- **JWT authentication** — login endpoint (`POST /api/auth/login`), current user endpoint (`GET /api/auth/me`), JWT Bearer token validation; all API routes except `/api/health`, `/api/version` and webhook receive now require a valid token
+- **Bootstrap admin** — admin account created automatically from `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars on first startup when the users table is empty
+- **Executions API** — `GET /api/executions` with `job_id`, `status`, `limit` and `offset` filters; `GET /api/executions/{id}` for execution detail
+- **SSRF protection** — `app/services/ssrf_guard.py` blocks job URLs targeting private and reserved ranges (loopback, RFC-1918, link-local, IPv6 ULA); controlled by `ENABLE_SSRF_PROTECTION` and `ALLOW_PRIVATE_NETWORK_TARGETS` env vars
+- **Webhook rate limiting** — in-memory per-IP and per-slug rate limiter on `POST /api/webhooks/{slug}/receive`; returns HTTP 429 when the limit is exceeded
+- **Jobs management UI** — `/jobs` list, `/jobs/new` create form, `/jobs/:id` detail, `/jobs/:id/edit` edit form; run, pause/activate, and delete actions
+- **Executions UI** — `/executions` list with status and job filters, `/executions/:id` detail view with masked request/response data
+- **Login page** — `/login` with email/password form, error handling and redirect after successful login
+- **Auth context** — `AuthContext` + `AuthProvider` + `useAuth` hook; JWT stored in `localStorage`; token sent as `Authorization: Bearer` header on every API request; auto-redirect to `/login` on 401
+- **Protected routes** — `ProtectedRoute` component wraps all pages except `/login`
+- **Sign-out** — logout action in sidebar clears token and redirects to `/login`
+- **Updated sidebar** — Jobs and Executions nav items; signed-in user email and sign-out button at bottom
+- New env vars: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ENABLE_SSRF_PROTECTION`, `ALLOW_PRIVATE_NETWORK_TARGETS`, `WEBHOOK_RATE_LIMIT_PER_MINUTE`, `API_RATE_LIMIT_PER_MINUTE`
+
+### Changed
+
+- `pyproject.toml` — added `PyJWT>=2.9` and `bcrypt>=4.0` runtime dependencies
+- `app/api/router.py` — protected routers now require `get_current_user` dependency; webhook receive moved to `webhook_receiver.py` (public)
+- `app/services/http_runner.py` — calls `ssrf_guard.check_url()` before executing HTTP jobs when `ENABLE_SSRF_PROTECTION=true`
+- `conftest.py` — overrides `get_current_user` with a stub user so all existing tests continue to pass without tokens
+- `.env.example` — documents all new v0.2.0 environment variables
+
+### Test Results (v0.2.0)
+
+| Suite | Tests | Status |
+| --- | --- | --- |
+| Backend (pytest) | 140+ | ✅ Passing |
+| Frontend (Vitest) | 38+ | ✅ Passing |
+| Backend lint (ruff) | — | ✅ Clean |
+| Frontend lint (ESLint) | — | ✅ Clean |
+| Frontend build | — | ✅ Success |
+
 ## [0.1.0] - 2026-05-19
 
 First stable release of the AutoFlowOps MVP. All core platform features are implemented, tested and validated end-to-end with Docker Compose.
