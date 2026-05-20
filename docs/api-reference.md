@@ -768,6 +768,102 @@ Sensitive metadata fields (`password`, `token`, `api_key`, etc.) are replaced wi
 
 ---
 
+## WebSocket — Real-Time Events
+
+### `GET /ws/events`
+
+Upgrades to a WebSocket connection and streams domain events as JSON frames.
+
+**Authentication** — pass the JWT as a query parameter (HTTP headers are not supported in browser WebSocket APIs):
+
+```text
+ws://localhost:8000/ws/events?token=<access_token>
+```
+
+Use `wss://` in any deployment with TLS (see Security notes).
+
+### Connection lifecycle
+
+1. Server accepts the connection.
+2. Token is validated: if missing, malformed or the user does not exist, the server sends an error frame and closes with code 1008 (Policy Violation).
+3. On success the server sends a `connected` frame:
+
+```json
+{"type": "connected", "data": {"user": "admin@example.com"}}
+```
+
+4. The server pushes events asynchronously. The client may send `"ping"` to receive `{"type": "pong"}`.
+5. The connection remains open until the client closes it or the server restarts.
+
+### Event types
+
+| Type | Trigger |
+| --- | --- |
+| `execution.started` | HTTP runner transitions execution to `running` |
+| `execution.completed` | Execution reaches a terminal state (`success`, `failure`, `timeout`) or `retrying` |
+| `alert.created` | A new alert is created by job failure |
+
+### `execution.started` frame
+
+```json
+{
+  "type": "execution.started",
+  "data": {
+    "execution_id": "uuid",
+    "job_id": "uuid",
+    "job_name": "My Job",
+    "trigger_type": "manual",
+    "status": "running"
+  },
+  "ts": "2026-05-20T10:00:00.123456+00:00"
+}
+```
+
+### `execution.completed` frame
+
+```json
+{
+  "type": "execution.completed",
+  "data": {
+    "execution_id": "uuid",
+    "job_id": "uuid",
+    "job_name": "My Job",
+    "status": "success",
+    "duration_ms": 312,
+    "response_status_code": 200,
+    "trigger_type": "scheduled"
+  },
+  "ts": "2026-05-20T10:00:00.456789+00:00"
+}
+```
+
+### `alert.created` frame
+
+```json
+{
+  "type": "alert.created",
+  "data": {
+    "alert_id": "uuid",
+    "title": "Job \"My Job\" failed",
+    "severity": "error",
+    "status": "open",
+    "source_type": "job_execution"
+  },
+  "ts": "2026-05-20T10:00:00.789012+00:00"
+}
+```
+
+### Close codes
+
+| Code | Meaning |
+| --- | --- |
+| `1000` | Normal closure initiated by client |
+| `1008` | Policy Violation — authentication failed (missing token, invalid JWT, inactive user) |
+
+**Fallback:** If the WebSocket is unavailable or Redis is not running, the frontend falls back to TanStack Query polling (30s interval on executions, jobs and alerts pages).
+
+---
+
 ## Error Responses
 
 | Status | Condition |

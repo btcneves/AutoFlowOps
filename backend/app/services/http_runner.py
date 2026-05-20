@@ -13,6 +13,7 @@ from app.config import settings
 from app.models.alert import Alert
 from app.models.execution import Execution
 from app.models.job import Job
+from app.services.event_publisher import publish_event_async
 from app.services.masking import mask_sensitive_body, mask_sensitive_headers
 from app.services.notifications import dispatch_alert_notifications
 from app.services.ssrf_guard import check_url
@@ -94,6 +95,17 @@ async def run_job_http(
     session.add(execution)
     await session.flush()
 
+    await publish_event_async(
+        "execution.started",
+        {
+            "execution_id": str(execution.id),
+            "job_id": str(execution.job_id),
+            "job_name": job.name,
+            "trigger_type": trigger_type,
+            "status": "running",
+        },
+    )
+
     start = time.monotonic()
     try:
         if (
@@ -142,7 +154,32 @@ async def run_job_http(
         await session.flush()
 
     await session.commit()
+
+    await publish_event_async(
+        "execution.completed",
+        {
+            "execution_id": str(execution.id),
+            "job_id": str(execution.job_id),
+            "job_name": job.name,
+            "status": execution.status,
+            "duration_ms": execution.duration_ms,
+            "response_status_code": execution.response_status_code,
+            "trigger_type": execution.trigger_type,
+        },
+    )
+
     if alert is not None:
         await dispatch_alert_notifications(session, alert)
+        await publish_event_async(
+            "alert.created",
+            {
+                "alert_id": str(alert.id),
+                "title": alert.title,
+                "severity": alert.severity,
+                "status": alert.status,
+                "source_type": alert.source_type,
+            },
+        )
+
     await session.refresh(execution)
     return execution

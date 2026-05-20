@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { LiveIndicator } from '../components/ui/LiveIndicator'
 import { useDeleteJob, useJobs, useRunJob } from '../hooks/useJobs'
+import { useWebSocket } from '../hooks/useWebSocket'
 import type { JobRead } from '../types'
 
 function formatDate(iso: string | null): string {
@@ -93,6 +96,15 @@ function JobRow({ job }: { job: JobRead }) {
 }
 
 export function JobsPage() {
+  const queryClient = useQueryClient()
+  const { lastEvent, status: wsStatus } = useWebSocket()
+
+  useEffect(() => {
+    if (lastEvent?.type === 'execution.completed') {
+      void queryClient.invalidateQueries({ queryKey: ['jobs'] })
+    }
+  }, [lastEvent, queryClient])
+
   const { data: jobs, isLoading, isError } = useJobs()
 
   return (
@@ -104,12 +116,15 @@ export function JobsPage() {
             Scheduled HTTP jobs and manual triggers.
           </p>
         </div>
-        <Link
-          to="/jobs/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-        >
-          New Job
-        </Link>
+        <div className="flex items-center gap-4">
+          <LiveIndicator status={wsStatus} />
+          <Link
+            to="/jobs/new"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            New Job
+          </Link>
+        </div>
       </div>
 
       {isLoading && <p className="text-sm text-gray-500">Loading jobs…</p>}

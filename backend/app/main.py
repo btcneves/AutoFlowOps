@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -9,6 +10,8 @@ from sqlalchemy import text
 import app.models  # noqa: F401 — ensure all models register with Base.metadata
 from app import __version__
 from app.api.router import router
+from app.api.ws import redis_subscriber
+from app.api.ws import router as ws_router
 from app.config import settings
 from app.database import async_session_factory, engine
 from app.models.base import Base
@@ -58,8 +61,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     scheduler.start()
     logger.info("Scheduler started")
 
+    subscriber_task = asyncio.create_task(redis_subscriber())
+
     yield
 
+    subscriber_task.cancel()
+    await asyncio.gather(subscriber_task, return_exceptions=True)
     scheduler.shutdown(wait=False)
     logger.info("Scheduler stopped")
     await engine.dispose()
@@ -86,3 +93,4 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(ws_router)

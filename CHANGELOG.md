@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-20
+
+### Added
+
+- **WebSocket endpoint** — `ws[s]://<host>/ws/events?token=<JWT>`; JWT authentication via query parameter; immediate rejection (close 1008) for missing, invalid or non-existent-user tokens
+- **`ConnectionManager`** — in-process singleton that tracks active WebSocket connections and broadcasts messages; dead connections are silently removed on next send
+- **Redis Pub/Sub fan-out** — a long-running asyncio task subscribes to the `autoflowops:events` channel and forwards every message to all connected WS clients; started in lifespan, cancelled on shutdown; fails gracefully if Redis is unavailable
+- **`event_publisher` service** — `publish_event()` (sync, for Celery) and `publish_event_async()` (async, for FastAPI); events: `execution.started`, `execution.completed`, `alert.created`; failures are logged and swallowed so the primary execution path is never blocked
+- **Execution events from `http_runner`** — `execution.started` on status transition to `running`; `execution.completed` and `alert.created` after each execution completes
+- **Execution events from Celery worker** — `execution.completed` (including `retrying` transitions) and `alert.created` published synchronously after each task run
+- **`useWebSocket` hook** — connects to `ws[s]://<host>/ws/events?token=<JWT>`; parses `WSEvent` frames; exponential-backoff reconnect (max 30s); stops reconnecting on auth failure (code 1008); closes cleanly on unmount; no reconnect when token is absent
+- **`LiveIndicator` component** — pulsing green dot ("Live") when WS is connected; neutral grey dot when connecting; renders nothing when closed or auth-failed (polling fallback remains active)
+- **Executions page real-time** — invalidates the executions query on `execution.started` / `execution.completed` events; displays `LiveIndicator`
+- **Jobs page real-time** — invalidates the jobs query on `execution.completed`; displays `LiveIndicator`
+- **Alerts page real-time** — invalidates the alerts query on `alert.created`; displays `LiveIndicator`
+- **WS backend tests** — 7 tests: no token, invalid token, ghost-user token, valid admin connects, ping/pong, manager broadcast, manager dead-connection cleanup
+- **WS frontend tests** — 10 tests in `useWebSocket.test.ts`: connection creation, initial status, auth_error when no token, open status, lastEvent parsing, pong/connected filtering, code-1008 no-reconnect, reconnect on normal close, socket close on unmount
+
 ## [0.7.0] - 2026-05-20
 
 ### Added

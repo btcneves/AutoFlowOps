@@ -319,6 +319,8 @@ docker compose -f docker-compose.prod.yml ps
 | `403 Forbidden` on webhook receive | Token mismatch or webhook paused | Check `X-Webhook-Token` header; check webhook status |
 | `429 Too Many Requests` | Rate limit exceeded | Wait a minute or increase `WEBHOOK_RATE_LIMIT_PER_MINUTE` |
 | Notification test fails | Provider URL, SMTP credentials or outbound firewall issue | Check channel config, provider credentials and backend logs |
+| WS badge stays "Connecting…" | Backend unavailable or wrong `VITE_API_BASE_URL` | Verify `VITE_API_BASE_URL` is set correctly; check browser console for WS errors |
+| WS events not received | Redis not running | `logs redis`; verify `REDIS_URL`; backend logs show "Redis WS subscriber exited" if disconnected |
 
 ### Exec into a container
 

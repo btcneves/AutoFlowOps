@@ -1,6 +1,6 @@
 # Architecture
 
-AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a Celery worker, Redis queue, React frontend and PostgreSQL persistence. The API owns request/response workflows, notification channel management and schedule timing; the worker owns HTTP job execution.
+AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a Celery worker, Redis queue, React frontend and PostgreSQL persistence. The API owns request/response workflows, notification channel management and schedule timing; the worker owns HTTP job execution. A real-time WebSocket stream pushes domain events (execution state changes, new alerts) to connected browser clients as they occur.
 
 ---
 
@@ -10,8 +10,9 @@ AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a Cele
 | --- | --- |
 | **Frontend** | Browser UI — dashboard, webhooks, alerts, notification channels and reports |
 | **Backend API** | REST API, request validation, database access and operational workflows |
+| **WebSocket endpoint** | `GET /ws/events` — JWT-authenticated stream; pushes `execution.started`, `execution.completed` and `alert.created` events in real time |
 | **Celery worker** | Executes queued HTTP jobs, handles retries and records execution results |
-| **Redis** | Celery broker/result backend for manual and scheduled job execution |
+| **Redis** | Celery broker/result backend and Pub/Sub channel (`autoflowops:events`) for real-time fan-out |
 | **PostgreSQL** | Persistent storage for all domain data |
 | **APScheduler** | In-process interval and cron timing for active jobs; dispatches work to Redis |
 | **HTTP runner** | Shared execution logic used by the worker: timeout, masking, SSRF guard and alerts |
@@ -24,14 +25,18 @@ AutoFlowOps is a self-hosted automation dashboard with a FastAPI backend, a Cele
 ```text
 Browser
   └─> React/Vite frontend (port 3000)
-        └─> FastAPI REST API (port 8000)
-              ├─> SQLAlchemy async session
-              │     └─> PostgreSQL (port 5432)
-              ├─> APScheduler (in-process, background thread)
-              │     └─> Redis queue
-              │           └─> Celery worker
-              ├─> Webhook receiver
-              └─> Notification delivery service
+        ├─> FastAPI REST API (port 8000)         [HTTP/JSON]
+        │     ├─> SQLAlchemy async session
+        │     │     └─> PostgreSQL (port 5432)
+        │     ├─> APScheduler (in-process)
+        │     │     └─> Redis queue
+        │     │           └─> Celery worker
+        │     ├─> Webhook receiver
+        │     └─> Notification delivery service
+        └─> FastAPI WebSocket (port 8000 /ws/events)   [WS push]
+              └─> Redis Pub/Sub (channel: autoflowops:events)
+                    ├─ published by http_runner (APScheduler path)
+                    └─ published by Celery worker (manual/cron path)
 ```
 
 ---
@@ -256,6 +261,33 @@ passwords are not returned through the API or shown in the UI.
 
 ---
 
+## Flow: Real-Time Events (WebSocket)
+
+```text
+Browser (authenticated)
+  └─> WS handshake: GET /ws/events?token=<JWT>
+        └─> server validates JWT + DB user lookup
+              ├─> reject (close 1008)  if token invalid or user not found
+              └─> accept → register in ConnectionManager
+
+                          [long-lived connection]
+                                │
+Celery worker / http_runner
+  └─> publish_event("execution.started" | "execution.completed" | "alert.created")
+        └─> redis.publish("autoflowops:events", JSON)
+
+Backend asyncio subscriber task
+  └─> redis.subscribe("autoflowops:events")
+        └─> on message → ConnectionManager.broadcast(message)
+              └─> ws.send_text(message) to every registered connection
+```
+
+Event payload fields are limited to safe, pre-masked identifiers and status values. No request headers, body content or credentials are included in WS events.
+
+If Redis is unavailable, the subscriber task exits with a warning and the WS endpoint still accepts connections; clients fall back to the existing polling interval provided by TanStack Query.
+
+---
+
 ## Flow: Report Generation
 
 ```text
@@ -288,7 +320,7 @@ Reports are derived from their saved canonical JSON, so historical reports remai
 | Secrets in logs | Sensitive headers and JSON body fields masked before any DB write |
 | Webhook tokens | Stored as SHA-256 hashes; plain tokens never persisted |
 | `.env` file | Git-ignored; only `.env.example` is committed |
-| Authentication | JWT Bearer tokens required on all routes except `/api/health`, `/api/version` and webhook receive |
+| Authentication | JWT Bearer tokens required on all routes except `/api/health`, `/api/version` and webhook receive; WebSocket uses JWT via query parameter |
 | Authorisation | Role-based access control: `require_admin` (admin only) and `require_operator` (operator+) dependencies applied per-endpoint |
 | Audit trail | Every sensitive write is recorded in `audit_logs` atomically in the same DB session; sensitive metadata masked before persistence |
 | Password exposure | `password_hash` never returned in any API response; `UserRead` schema omits it |
@@ -302,11 +334,13 @@ See [docs/security.md](security.md) for the full masking reference.
 
 ---
 
-## Known Boundaries (v0.7.0)
+## Known Boundaries (v0.8.0)
 
 - **In-process scheduler.** APScheduler still runs inside the backend process. Run one scheduler-owning API replica.
 - **Worker retries are per execution.** A queued execution is updated through retry attempts rather than creating one execution row per attempt.
 - **In-process rate limiter.** The rate limiter resets on backend restart and is not shared across replicas. Replace with a Redis-backed implementation for HA deployments.
+- **WebSocket token in URL.** The JWT is passed as a query parameter because browser WS APIs do not support custom headers. This means the token appears in server access logs. Use HTTPS/WSS in production and minimise token lifetime.
+- **Single Redis subscriber.** One asyncio task subscribes to the Redis channel per backend process. In a multi-replica setup, each replica independently subscribes and fans out only to its own connected clients.
 - **No refresh tokens.** JWT access tokens expire after `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` with no renewal mechanism; users must re-authenticate.
 - **Reports are not recomputed.** Downloads are generated from the saved canonical JSON, not recalculated from live data.
 - **Notification credentials are stored for delivery.** Channel secrets are masked in responses and delivery logs; Fernet encryption is applied at rest (v0.6.0+), but database-level key management is the operator's responsibility.

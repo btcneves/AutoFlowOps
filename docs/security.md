@@ -245,6 +245,30 @@ change `ADMIN_PASSWORD` immediately after the first login.
 
 ---
 
+## WebSocket Authentication
+
+The WebSocket event stream at `/ws/events` uses JWT authentication via a query parameter because browser `WebSocket` APIs do not support custom HTTP headers during the handshake.
+
+### Implications
+
+| Concern | Detail |
+| --- | --- |
+| **Token in URL** | The JWT appears in server access logs and proxy forwarding headers. Rotate tokens if logs are leaked. |
+| **Mitigation** | Use `wss://` (TLS) in production so the query string is encrypted in transit. Caddy handles this automatically. |
+| **Token lifetime** | The default token expiry is `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (default: 60 minutes). Shorter lifetimes reduce the exposure window. |
+| **Close on auth failure** | The server closes the connection with code 1008 (Policy Violation) if the token is missing, invalid or the user is inactive. The frontend stops reconnecting on this code. |
+
+### What WS events contain
+
+Event frames carry only identifiers and status values:
+
+- `execution_id`, `job_id`, `job_name`, `trigger_type`, `status`, `duration_ms`, `response_status_code`
+- `alert_id`, `title`, `severity`
+
+No request headers, body content, credentials, webhook URLs or SMTP passwords are ever included in WebSocket event payloads.
+
+---
+
 ## Production Recommendations
 
 The recommended production path is `docker-compose.prod.yml` + Caddy, documented in [docs/deployment.md](deployment.md). Key security properties of that setup:
