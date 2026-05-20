@@ -66,7 +66,7 @@ describe('DashboardPage', () => {
 
   it('shows Online badge when backend is healthy', () => {
     vi.mocked(useHealth).mockReturnValue({
-      data: { status: 'ok', app: 'AutoFlowOps', env: 'development' },
+      data: { status: 'ok', app: 'AutoFlowOps', env: 'development', database: 'ok' },
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useHealth>)

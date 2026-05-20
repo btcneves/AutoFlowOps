@@ -109,6 +109,20 @@ with a Redis-backed implementation.
 
 ---
 
+## Queue Security (v0.4.0)
+
+HTTP job execution is dispatched through Redis and processed by the Celery worker.
+Queued task payloads contain database identifiers and trigger metadata; request
+headers and bodies are loaded from PostgreSQL by the worker and are masked before
+being written to execution history.
+
+Production Compose keeps Redis on the internal Docker network only. Do not expose
+Redis to the public internet. If deploying outside the provided Compose files,
+bind Redis to a private interface and protect it with network-level access
+controls.
+
+---
+
 ## Authentication (v0.2.0)
 
 All API routes except `/api/health`, `/api/version` and the webhook receiver
@@ -127,14 +141,15 @@ change `ADMIN_PASSWORD` immediately after the first login.
 
 ---
 
-## Known Limitations (v0.2.0)
+## Known Limitations (v0.4.0)
 
 | Limitation | Detail |
 | --- | --- |
 | **Rate limiting is in-process** | Resets on restart; not shared across replicas. Replace with Redis-backed limiter for HA deployments. |
 | **No token revocation** | JWT tokens remain valid until expiry. Logout only clears the client-side token. |
 | **No refresh tokens** | Users must re-authenticate when the access token expires. |
-| **Scheduler is in-process** | APScheduler runs inside the backend. A single crashed process stops all scheduled jobs. |
+| **Scheduler timing is in-process** | APScheduler runs inside the backend and dispatches to Redis. Run one scheduler-owning API replica. |
+| **Redis rate limiting not implemented** | Redis is used for Celery. Webhook rate limiting remains in-memory per API process. |
 | **Response preview is truncated** | Only the first 500 bytes of the response body are stored. |
 | **No audit log** | There is no immutable audit trail of resource changes. |
 
@@ -147,6 +162,7 @@ The recommended production path is `docker-compose.prod.yml` + Caddy, documented
 - **Caddy terminates TLS** — automatic HTTPS via Let's Encrypt; HTTP redirected to HTTPS.
 - **Security headers** — `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy` set by Caddy.
 - **PostgreSQL not exposed** — port 5432 is absent from `docker-compose.prod.yml`; the database is only reachable from other containers on the internal Docker network.
+- **Redis not exposed** — port 6379 is absent from `docker-compose.prod.yml`; Redis is only reachable from other containers on the internal Docker network.
 - **Backend and frontend not published** — only Caddy (ports 80/443) is reachable from outside Docker.
 
 Additional hardening steps:
@@ -155,7 +171,7 @@ Additional hardening steps:
 2. **Change the bootstrap admin password** — `ADMIN_PASSWORD` is used only on the first startup. After creating the admin account, use a strong password and change it immediately after first login.
 3. **Do not commit `.env.production`** — it is listed in `.gitignore`; verify it never appears in `git status` output.
 4. **Firewall** — allow only ports 22 (SSH), 80 and 443 from the public internet. Block all other ports at the firewall level.
-5. **Keep Docker and the OS updated** — subscribe to security advisories for Ubuntu, Docker and PostgreSQL 16.
+5. **Keep Docker and the OS updated** — subscribe to security advisories for Ubuntu, Docker, PostgreSQL 16 and Redis.
 6. **Review job URLs** — before activating a job that targets an internal service, verify the URL is intentional to prevent accidental SSRF.
 7. **Do not use real tokens in demos** — never include real API keys, tokens or secrets in job configurations used for screenshots or documentation.
 

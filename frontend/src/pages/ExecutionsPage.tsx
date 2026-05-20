@@ -13,7 +13,10 @@ function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
     success: 'bg-green-100 text-green-700',
     failure: 'bg-red-100 text-red-700',
+    timeout: 'bg-red-100 text-red-700',
     running: 'bg-blue-100 text-blue-700',
+    queued: 'bg-gray-100 text-gray-700',
+    retrying: 'bg-yellow-100 text-yellow-800',
   }
   const cls = styles[status] ?? 'bg-gray-100 text-gray-600'
   return (
@@ -54,7 +57,10 @@ const STATUS_OPTIONS = [
   { label: 'All', value: '' },
   { label: 'Success', value: 'success' },
   { label: 'Failure', value: 'failure' },
+  { label: 'Timeout', value: 'timeout' },
   { label: 'Running', value: 'running' },
+  { label: 'Queued', value: 'queued' },
+  { label: 'Retrying', value: 'retrying' },
 ]
 
 export function ExecutionsPage() {

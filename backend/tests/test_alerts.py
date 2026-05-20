@@ -1,6 +1,7 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.alert import Alert
 
 
@@ -133,7 +134,9 @@ async def test_acknowledge_alert_not_found(async_client: AsyncClient) -> None:
 
 async def test_auto_alert_on_job_failure(
     async_client: AsyncClient,
+    monkeypatch,
 ) -> None:
+    monkeypatch.setattr(settings, "job_execution_mode", "inline")
     r = await async_client.post(
         "/api/jobs",
         json={

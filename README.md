@@ -36,8 +36,9 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 ## Features
 
 - Self-hosted, runs on any server or Docker environment
-- REST API backend (FastAPI + PostgreSQL) and React frontend
+- REST API backend (FastAPI + PostgreSQL), Celery worker and React frontend
 - Scheduled jobs with interval (seconds) and cron expressions
+- Redis-backed job queue for manual and scheduled executions
 - HTTP job runner with configurable timeout
 - Webhook receiver with secret token validation (SHA-256)
 - Execution history with masked secrets and response previews
@@ -55,7 +56,8 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 | --- | --- |
 | Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.x, Alembic |
 | Database | PostgreSQL 16 |
-| Scheduler | APScheduler (in-process, MVP) |
+| Scheduler | APScheduler dispatching to Celery |
+| Queue / Worker | Redis + Celery |
 | HTTP client | httpx |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS |
 | State/Fetch | TanStack Query v5 |
@@ -75,7 +77,8 @@ Browser
               ├─> SQLAlchemy async session
               │     └─> PostgreSQL (port 5432)
               ├─> APScheduler (in-process)
-              │     └─> HTTP runner (executes jobs, creates executions + alerts)
+              │     └─> Redis queue
+              │           └─> Celery worker (executes jobs, creates executions + alerts)
               └─> Webhook receiver (validates token, stores events)
 ```
 
@@ -121,6 +124,7 @@ docker compose up --build
 | Backend API | <http://localhost:8000> |
 | API docs (Swagger) | <http://localhost:8000/docs> |
 | API docs (ReDoc) | <http://localhost:8000/redoc> |
+| Redis | `localhost:6379` |
 
 ### 3. Verify
 
@@ -187,7 +191,7 @@ make test
 
 | Suite | Tests | Status |
 | --- | --- | --- |
-| Backend | 134 | Passing |
+| Backend | 140 | Passing |
 | Frontend | 45 | Passing |
 
 ---
@@ -219,6 +223,7 @@ make dev      # docker compose up --build (foreground)
 make up       # docker compose up -d --build (background)
 make down     # docker compose down
 make logs     # docker compose logs -f
+make worker-logs # docker compose logs -f worker
 make test     # run backend + frontend tests
 make lint     # run backend + frontend lint
 make format   # run backend + frontend format
@@ -284,10 +289,12 @@ autoflowops/
 | VPS deployment guide | ✅ Done |
 | Caddy reverse proxy + production Compose | ✅ Done |
 | Production health checks and config CI | ✅ Done |
-| Celery + Redis worker | Planned |
+| Celery + Redis worker | ✅ Done |
+| Queued manual and scheduled job execution | ✅ Done |
 | External notifications (Discord, Telegram, email) | Planned |
 | Real-time logs via WebSocket | Planned |
 | RBAC (role-based access control) | Planned |
+| Advanced retry policy UI | Planned |
 
 See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.
 

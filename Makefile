@@ -1,7 +1,7 @@
 BACKEND_PYTEST ?= $(shell if [ -x backend/.venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
 BACKEND_RUFF ?= $(shell if [ -x backend/.venv/bin/ruff ]; then echo .venv/bin/ruff; else echo ruff; fi)
 
-.PHONY: dev up down logs test lint format setup seed prod-up prod-down prod-logs prod-validate
+.PHONY: dev up down logs worker-logs test lint format setup seed prod-up prod-down prod-logs prod-validate
 
 setup:
 	@test -f .env || cp .env.example .env && echo ".env created from .env.example"
@@ -17,6 +17,9 @@ down:
 
 logs:
 	docker compose logs -f
+
+worker-logs:
+	docker compose logs -f worker
 
 test:
 	cd backend && PYTHONPATH=. $(BACKEND_PYTEST)
