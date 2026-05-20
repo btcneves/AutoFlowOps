@@ -4,6 +4,20 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.9.0)
+
+| Feature | Details |
+| --- | --- |
+| **Docker image registry** | Backend and frontend images published to GHCR on every version tag; OCI labels, build cache via GitHub Actions cache; tags: `vX.Y.Z`, `X.Y`, `latest` |
+| **Improved Dockerfiles** | Backend: added `curl`, `HEALTHCHECK` instruction, OCI labels, non-root user created early, dependency cache layer isolated; `.dockerignore` extended to exclude tests, eggs, SQLite files |
+| **Frontend Dockerfile** | Added OCI labels; `.dockerignore` extended to exclude `src/tests/` and `coverage/` |
+| **`docker-compose.registry.yml`** | Drop-in compose file that uses `ghcr.io/btcneves/autoflowops-backend` and `ghcr.io/btcneves/autoflowops-frontend` images; `IMAGE_TAG` environment variable selects the version |
+| **`scripts/setup.sh`** | Interactive (or non-interactive via `IMAGE_TAG`) setup script: checks prerequisites, copies `.env.example`, pulls images from GHCR, starts the stack, waits for health endpoints and prints service URLs |
+| **Makefile targets** | `pull` — pull images from GHCR; `registry-up` — start with GHCR images; `registry-down` — stop; `registry-logs` — stream logs; `IMAGE_TAG` variable controls the version |
+| **`docker-publish.yml` workflow** | GitHub Actions workflow triggered on `v*.*.*` tag push; builds and pushes backend and frontend images to GHCR; uses build cache (`type=gha`) for fast rebuilds; separate jobs for each service |
+
+---
+
 ## Completed (v0.8.0)
 
 | Feature | Details |
@@ -157,7 +171,7 @@ These features are planned but not yet in active development.
 | **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |
 | **PDF reports** | Export operational reports as PDF in addition to JSON, Markdown and CSV |
 | **Multi-workspace** | Namespace isolation for teams or projects within a single instance |
-| **Docker image registry** | Publish versioned images to GitHub Container Registry for direct pull |
+| **Docker image registry** | ~~Delivered in v0.9.0~~ |
 | **Audit log** | ~~Delivered in v0.7.0~~ |
 
 ---

@@ -1,0 +1,102 @@
+# docker-compose.registry.yml
+#
+# Starts AutoFlowOps using pre-built images from GitHub Container Registry (GHCR).
+# No local build is required — images are pulled on first run.
+#
+# Usage:
+#   IMAGE_TAG=v0.9.0 docker compose -f docker-compose.registry.yml up -d
+#   IMAGE_TAG=latest  docker compose -f docker-compose.registry.yml up -d
+#
+# IMAGE_TAG defaults to "latest". Set it to a specific release tag to pin the version.
+#
+# Prerequisites:
+#   cp .env.example .env
+#   # Edit .env — change APP_SECRET_KEY and JWT_SECRET_KEY before any deployment
+
+services:
+  backend:
+    image: ghcr.io/btcneves/autoflowops-backend:${IMAGE_TAG:-latest}
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "false"
+      FRONTEND_URL: "http://localhost:3000"
+      DATABASE_URL: "postgresql+psycopg://autoflowops:autoflowops@db:5432/autoflowops"
+      REDIS_URL: "redis://redis:6379/0"
+      JOB_EXECUTION_MODE: "celery"
+      LOG_LEVEL: INFO
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/btcneves/autoflowops-backend:${IMAGE_TAG:-latest}
+    command: celery -A app.worker.celery_app worker --loglevel=INFO
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "false"
+      DATABASE_URL: "postgresql+psycopg://autoflowops:autoflowops@db:5432/autoflowops"
+      REDIS_URL: "redis://redis:6379/0"
+      JOB_EXECUTION_MODE: "celery"
+      LOG_LEVEL: INFO
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping -d celery@$$HOSTNAME | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/btcneves/autoflowops-frontend:${IMAGE_TAG:-latest}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: autoflowops
+      POSTGRES_USER: autoflowops
+      POSTGRES_PASSWORD: autoflowops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autoflowops -d autoflowops"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

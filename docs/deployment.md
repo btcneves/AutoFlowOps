@@ -1,6 +1,85 @@
 # Deployment Guide
 
-This guide covers local development with Docker Compose and production deployment on a VPS with HTTPS via Caddy.
+This guide covers three ways to run AutoFlowOps:
+
+1. **Pull from registry** — fastest; downloads pre-built images from GHCR. No build step.
+2. **Build from source** — full local build using Docker Compose.
+3. **Production on a VPS** — Caddy reverse proxy with automatic HTTPS.
+
+---
+
+## Option 1 — Pull from GitHub Container Registry (GHCR)
+
+AutoFlowOps publishes versioned Docker images to GHCR on every release tag. No local build is required.
+
+### Images
+
+| Image | Registry path |
+| --- | --- |
+| Backend | `ghcr.io/btcneves/autoflowops-backend` |
+| Frontend | `ghcr.io/btcneves/autoflowops-frontend` |
+
+Available tags: `latest`, `vX.Y.Z`, `X.Y` (e.g. `v0.9.0`, `0.9`).
+
+### Quick setup (interactive)
+
+```bash
+git clone https://github.com/btcneves/autoflowops.git
+cd autoflowops
+bash scripts/setup.sh
+```
+
+The script:
+
+1. Checks that Docker and Docker Compose are installed
+2. Copies `.env.example` to `.env` if it does not exist
+3. Prompts for an image tag (default: `latest`)
+4. Pulls `autoflowops-backend` and `autoflowops-frontend` from GHCR
+5. Starts the stack with `docker-compose.registry.yml`
+6. Waits for the backend health endpoint and the frontend to respond
+7. Prints service URLs
+
+### Non-interactive (CI / scripted environments)
+
+```bash
+IMAGE_TAG=v0.9.0 bash scripts/setup.sh
+```
+
+### Makefile shortcuts
+
+```bash
+# Pull images (IMAGE_TAG defaults to latest)
+make pull
+
+# Start stack using GHCR images
+IMAGE_TAG=v0.9.0 make registry-up
+
+# Stop
+make registry-down
+
+# Stream logs
+make registry-logs
+```
+
+### Pinning a specific version
+
+```bash
+IMAGE_TAG=v0.9.0 docker compose -f docker-compose.registry.yml up -d
+```
+
+### Updating to a new version
+
+```bash
+IMAGE_TAG=v0.9.0 make pull
+IMAGE_TAG=v0.9.0 make registry-down
+IMAGE_TAG=v0.9.0 make registry-up
+```
+
+The backend container runs `alembic upgrade head` on startup and applies any pending migrations automatically.
+
+---
+
+## Option 2 — Build from source (local Docker Compose)
 
 ---
 
@@ -321,6 +400,8 @@ docker compose -f docker-compose.prod.yml ps
 | Notification test fails | Provider URL, SMTP credentials or outbound firewall issue | Check channel config, provider credentials and backend logs |
 | WS badge stays "Connecting…" | Backend unavailable or wrong `VITE_API_BASE_URL` | Verify `VITE_API_BASE_URL` is set correctly; check browser console for WS errors |
 | WS events not received | Redis not running | `logs redis`; verify `REDIS_URL`; backend logs show "Redis WS subscriber exited" if disconnected |
+| `docker pull` fails with 403 | GHCR package is private | Go to repository → Packages → make package public, or `docker login ghcr.io` with a token |
+| Stack starts but shows old version | IMAGE_TAG not set or `latest` cached | Run `make pull IMAGE_TAG=v0.9.0` then `make registry-up IMAGE_TAG=v0.9.0` |
 
 ### Exec into a container
 

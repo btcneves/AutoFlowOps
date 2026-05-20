@@ -1,5 +1,10 @@
 FROM node:20-slim AS build
 
+LABEL org.opencontainers.image.title="AutoFlowOps Frontend" \
+      org.opencontainers.image.description="React/TypeScript frontend for AutoFlowOps" \
+      org.opencontainers.image.source="https://github.com/btcneves/autoflowops" \
+      org.opencontainers.image.licenses="MIT"
+
 WORKDIR /app
 
 COPY package*.json ./
