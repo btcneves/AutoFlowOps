@@ -14,6 +14,8 @@ from app.services.auth import decode_access_token
 
 _bearer = HTTPBearer()
 
+_ROLE_LEVEL = {"admin": 3, "operator": 2, "viewer": 1, "user": 1}
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
@@ -39,3 +41,25 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+async def require_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if _ROLE_LEVEL.get(current_user.role, 0) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
+
+
+async def require_operator(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if _ROLE_LEVEL.get(current_user.role, 0) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operator or admin access required",
+        )
+    return current_user

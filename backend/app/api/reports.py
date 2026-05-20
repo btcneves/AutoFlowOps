@@ -6,20 +6,23 @@ from datetime import datetime
 from io import StringIO
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_user, require_operator
 from app.models.alert import Alert
 from app.models.execution import Execution
 from app.models.job import Job
 from app.models.report import Report
+from app.models.user import User
 from app.schemas.report import (
     ReportGenerateRequest,
     ReportRead,
     ReportSummaryRead,
 )
+from app.services.audit import client_ip, log_action
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -263,7 +266,9 @@ def _content_to_csv(content: dict[str, Any]) -> str:
 @router.post("/generate", response_model=ReportRead, status_code=201)
 async def generate_report(
     payload: ReportGenerateRequest,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> ReportRead:
     content = await _build_report_content(
         session=session,
@@ -282,6 +287,17 @@ async def generate_report(
         content=json.dumps(content, sort_keys=True),
     )
     session.add(report)
+    await session.flush()
+    await log_action(
+        session,
+        action="reports.generate",
+        resource_type="report",
+        resource_id=str(report.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": name},
+    )
     await session.commit()
     await session.refresh(report)
     return ReportRead.model_validate(report)
@@ -290,6 +306,7 @@ async def generate_report(
 @router.get("", response_model=list[ReportSummaryRead])
 async def list_reports(
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> list[ReportSummaryRead]:
     result = await session.execute(select(Report).order_by(Report.created_at.desc()))
     return [ReportSummaryRead.model_validate(item) for item in result.scalars().all()]
@@ -299,6 +316,7 @@ async def list_reports(
 async def get_report(
     report_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> ReportRead:
     report = await _get_or_404(session, report_id)
     return ReportRead.model_validate(report)
@@ -309,6 +327,7 @@ async def download_report(
     report_id: uuid.UUID,
     format: Literal["json", "markdown", "csv"] = "json",
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> Response:
     report = await _get_or_404(session, report_id)
     content = _load_content(report)

@@ -74,7 +74,62 @@ The Alembic schema creates these tables:
 | `notification_channels` | External notification destinations and masked channel configuration |
 | `notification_deliveries` | Per-alert delivery outcomes for configured notification channels |
 | `reports` | Saved canonical report content (JSON) and metadata |
-| `users` | Reserved for future authentication and ownership features |
+| `users` | Authenticated accounts with roles (`admin`, `operator`, `viewer`), bcrypt password hash and `last_login_at` timestamp |
+| `audit_logs` | Immutable append-only record of sensitive actions: actor, action name, resource reference, status, IP address, user agent and masked metadata |
+
+---
+
+## Role-Based Access Control
+
+Three roles are enforced server-side. Role level is compared as an integer so the hierarchy is inheritable:
+
+| Role | Level | Capabilities |
+| --- | --- | --- |
+| `admin` | 3 | All endpoints — user management, audit logs, plus everything below |
+| `operator` | 2 | Create/edit/delete jobs, run jobs, manage webhooks, ack/resolve alerts, test notification channels, generate reports |
+| `viewer` | 1 | Read-only access to all domain data; no write operations |
+
+The FastAPI dependency chain:
+
+```text
+Authenticated request (JWT Bearer)
+  └─> get_current_user          → verifies token, loads User from DB
+        ├─> (no extra dep)      → viewer-accessible endpoints
+        ├─> require_operator    → level >= 2; raises 403 otherwise
+        └─> require_admin       → level >= 3; raises 403 otherwise
+```
+
+Both `require_operator` and `require_admin` are defined in `backend/app/dependencies.py` and applied per-endpoint via `Depends()`.
+
+---
+
+## Audit Log Flow
+
+Every sensitive action writes an `AuditLog` record within the same database session as the primary operation:
+
+```text
+Authenticated API request
+  ├─> perform DB operation (job create, user delete, etc.)
+  ├─> session.flush()              # assigns PK to new rows without committing
+  ├─> log_action(session, ...)     # inserts AuditLog row; masks sensitive metadata
+  └─> session.commit()             # commits both primary operation and audit entry atomically
+```
+
+The `log_action` service (`backend/app/services/audit.py`) strips keys matching the sensitive key set before writing `metadata` to the database. Sensitive keys include: `password`, `password_hash`, `secret`, `token`, `api_key`, `webhook_url`, `bot_token`, `smtp_password`, `encryption_key`.
+
+Events logged:
+
+| Event category | Actions |
+| --- | --- |
+| Auth | `auth.login_success`, `auth.login_failure` |
+| Jobs | `job.create`, `job.update`, `job.delete`, `job.run` |
+| Webhooks | `webhook.create`, `webhook.update`, `webhook.delete`, `webhook.reprocess` |
+| Alerts | `alert.acknowledge`, `alert.resolve` |
+| Notification channels | `notification_channel.create`, `.update`, `.delete`, `.activate`, `.deactivate`, `.test` |
+| Templates | `notification_template.create`, `.update`, `.delete` |
+| Escalation policies | `escalation_policy.create`, `.update`, `.delete`, `.add_step`, `.delete_step` |
+| Reports | `report.generate` |
+| Users | `user.create`, `user.update`, `user.delete`, `user.reset_password` |
 
 ---
 
@@ -234,6 +289,9 @@ Reports are derived from their saved canonical JSON, so historical reports remai
 | Webhook tokens | Stored as SHA-256 hashes; plain tokens never persisted |
 | `.env` file | Git-ignored; only `.env.example` is committed |
 | Authentication | JWT Bearer tokens required on all routes except `/api/health`, `/api/version` and webhook receive |
+| Authorisation | Role-based access control: `require_admin` (admin only) and `require_operator` (operator+) dependencies applied per-endpoint |
+| Audit trail | Every sensitive write is recorded in `audit_logs` atomically in the same DB session; sensitive metadata masked before persistence |
+| Password exposure | `password_hash` never returned in any API response; `UserRead` schema omits it |
 | Passwords | bcrypt hashed; plain passwords never stored |
 | SSRF | Private/reserved IP ranges blocked by default before any HTTP job executes |
 | Rate limiting | In-memory per-IP rate limiter on the webhook receiver |
@@ -244,14 +302,15 @@ See [docs/security.md](security.md) for the full masking reference.
 
 ---
 
-## Known Boundaries (v0.5.0)
+## Known Boundaries (v0.7.0)
 
 - **In-process scheduler.** APScheduler still runs inside the backend process. Run one scheduler-owning API replica.
 - **Worker retries are per execution.** A queued execution is updated through retry attempts rather than creating one execution row per attempt.
 - **In-process rate limiter.** The rate limiter resets on backend restart and is not shared across replicas. Replace with a Redis-backed implementation for HA deployments.
 - **No refresh tokens.** JWT access tokens expire after `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` with no renewal mechanism; users must re-authenticate.
 - **Reports are not recomputed.** Downloads are generated from the saved canonical JSON, not recalculated from live data.
-- **Notification credentials are stored for delivery.** Channel secrets are masked in responses and delivery logs, but database-level encryption is not implemented yet.
+- **Notification credentials are stored for delivery.** Channel secrets are masked in responses and delivery logs; Fernet encryption is applied at rest (v0.6.0+), but database-level key management is the operator's responsibility.
+- **Audit log is append-only by convention.** No row-level immutability mechanism (e.g., PostgreSQL row security) is enforced; physical database access bypasses the audit trail.
 - **Notification retries are simple.** Delivery uses a short retry loop and records the final result; escalation and provider-specific backoff are future work.
 
 ---

@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-20
+
+### Added
+
+- **RBAC** — three roles (`admin`, `operator`, `viewer`) enforced server-side via `require_admin` and `require_operator` FastAPI dependencies; applied to every write endpoint across jobs, webhooks, alerts, notifications, templates, escalation policies and reports
+- **User management API** — `GET /api/users`, `POST /api/users`, `PATCH /api/users/{id}`, `POST /api/users/{id}/reset-password`, `DELETE /api/users/{id}`; all admin-only; protects against deleting or deactivating the last active admin account
+- **Audit log model** — `audit_logs` table with `user_id` (nullable FK, `SET NULL` on delete), `action`, `resource_type`, `resource_id`, `status`, `ip_address`, `user_agent`, masked `metadata`, `created_at`
+- **Audit log API** — `GET /api/audit-logs` with filters (`user_id`, `action`, `resource_type`, `status`, `since`, `until`, `limit`); admin-only
+- **Audit coverage** — login success/failure, all job CRUD + run, webhook CRUD + reprocess, alert ack/resolve, notification channel CRUD + test, template CRUD, escalation policy CRUD, report generate, user management events
+- **Sensitive metadata masking in audit** — `password`, `token`, `api_key`, `webhook_url`, `bot_token`, `smtp_password`, `encryption_key` and related keys replaced with `"[redacted]"` before persistence
+- **`last_login_at` tracking** — `User` model now records the timestamp of each successful login
+- **`require_admin` / `require_operator` dependencies** — `backend/app/dependencies.py`; role level integer comparison (`admin=3`, `operator=2`, `viewer=1`)
+- **`audit.py` service** — async `log_action()` helper; uses `session.flush()` to capture new resource IDs before commit
+- **Frontend: Users page** — admin-only; table with name, email, role selector, status badge, last login, created date; inline password reset form; activate/deactivate; delete with self-protection
+- **Frontend: Audit Logs page** — admin-only; filter controls for action, resource type, status and date range; sortable log table
+- **Frontend: `AdminRoute` component** — redirects unauthenticated users to `/login`, non-admins to `/`
+- **Frontend: `isAdmin` / `isOperator`** — computed booleans derived from role level in `AuthContext`; used by `AdminRoute` and `Sidebar`
+- **Frontend: admin nav items** — Users and Audit Logs sidebar links visible only to admins
+- **RBAC backend tests** — 20 tests across 4 classes (viewer read, viewer blocked write, operator write, admin full access)
+- **Audit log backend tests** — 5 tests: login events, job audit, metadata masking, filter queries
+- **User management backend tests** — 9 tests: CRUD, last-admin protection, no `password_hash` in responses
+- **Frontend tests** — 8 new tests: `UsersPage` (4) and `AuditLogsPage` (4)
+- **Release notes** — `docs/release-notes-v0.7.0.md`
+
+### Changed
+
+- Default user role changed from `"user"` to `"viewer"`
+- `GET /api/jobs`, `GET /api/jobs/{id}`, `GET /api/executions`, `GET /api/webhooks`, `GET /api/alerts`, `GET /api/reports` now accessible to all authenticated roles (previously operator-only by convention)
+- `POST /api/jobs`, `PUT /api/jobs/{id}`, `DELETE /api/jobs/{id}`, `POST /api/jobs/{id}/run` now require `operator` or above (explicit enforcement)
+- Webhook, alert, notification channel, template, escalation policy and report write operations now carry explicit role checks
+- Sidebar footer now displays the authenticated user's role label
+- `Base.metadata.create_all` in app lifespan ensures `audit_logs` table is created on startup (no Alembic migration required for new tables)
+
+### Test Results (v0.7.0)
+
+| Suite | Status |
+| --- | --- |
+| Backend lint (ruff) | Clean |
+| Backend tests (pytest) | 209 passing |
+| Frontend tests (Vitest) | 65 passing |
+| Frontend lint (ESLint) | Clean |
+| Frontend TypeScript | No errors |
+
 ## [0.6.0] - 2026-05-20
 
 ### Added

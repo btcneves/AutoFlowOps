@@ -1,14 +1,17 @@
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_user, require_operator
 from app.models.job import Job
+from app.models.user import User
 from app.schemas.execution import ExecutionRead
 from app.schemas.job import JobCreate, JobRead, JobUpdate
+from app.services.audit import client_ip, log_action
 from app.services.job_queue import enqueue_job_execution
 from app.services.masking import mask_sensitive_headers
 from app.services.scheduler import schedule_job, unschedule_job
@@ -46,7 +49,9 @@ def _job_to_read(job: Job) -> JobRead:
 @router.post("", response_model=JobRead, status_code=201)
 async def create_job(
     payload: JobCreate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> JobRead:
     job = Job(
         name=payload.name,
@@ -64,6 +69,17 @@ async def create_job(
         alert_on_failure=payload.alert_on_failure,
     )
     session.add(job)
+    await session.flush()
+    await log_action(
+        session,
+        action="jobs.create",
+        resource_type="job",
+        resource_id=str(job.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": job.name, "url": job.url},
+    )
     await session.commit()
     await session.refresh(job)
     next_run = schedule_job(job)
@@ -75,7 +91,10 @@ async def create_job(
 
 
 @router.get("", response_model=list[JobRead])
-async def list_jobs(session: AsyncSession = Depends(get_db)) -> list[JobRead]:
+async def list_jobs(
+    session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[JobRead]:
     result = await session.execute(select(Job).order_by(Job.created_at.desc()))
     jobs = result.scalars().all()
     return [_job_to_read(j) for j in jobs]
@@ -85,6 +104,7 @@ async def list_jobs(session: AsyncSession = Depends(get_db)) -> list[JobRead]:
 async def get_job(
     job_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> JobRead:
     job = await _get_or_404(session, job_id)
     return _job_to_read(job)
@@ -94,7 +114,9 @@ async def get_job(
 async def update_job(
     job_id: uuid.UUID,
     payload: JobUpdate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> JobRead:
     job = await _get_or_404(session, job_id)
 
@@ -110,6 +132,16 @@ async def update_job(
     for field, value in updates.items():
         setattr(job, field, value)
 
+    await log_action(
+        session,
+        action="jobs.update",
+        resource_type="job",
+        resource_id=str(job.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"updated_fields": list(updates.keys())},
+    )
     await session.commit()
     await session.refresh(job)
     next_run = schedule_job(job)
@@ -123,9 +155,21 @@ async def update_job(
 @router.delete("/{job_id}", status_code=204)
 async def delete_job(
     job_id: uuid.UUID,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> None:
     job = await _get_or_404(session, job_id)
+    await log_action(
+        session,
+        action="jobs.delete",
+        resource_type="job",
+        resource_id=str(job.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": job.name},
+    )
     await session.delete(job)
     await session.commit()
     unschedule_job(job_id)
@@ -134,12 +178,25 @@ async def delete_job(
 @router.post("/{job_id}/run", response_model=ExecutionRead, status_code=202)
 async def run_job(
     job_id: uuid.UUID,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_operator),
 ) -> ExecutionRead:
     job = await _get_or_404(session, job_id)
     if job.type != "http":
         raise HTTPException(status_code=501, detail="Only HTTP jobs are supported")
     execution = await enqueue_job_execution(job, session, trigger_type="manual")
+    await log_action(
+        session,
+        action="jobs.run",
+        resource_type="job",
+        resource_id=str(job.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"execution_id": str(execution.id)},
+    )
+    await session.commit()
     return ExecutionRead.model_validate(execution)
 
 

@@ -146,6 +146,70 @@ HTTP jobs when `ENABLE_SSRF_PROTECTION=true`.
 
 ---
 
+## Role-Based Access Control (v0.7.0)
+
+Three roles are enforced **server-side** on every write endpoint. Role checks are applied as FastAPI dependencies (`require_admin`, `require_operator`) and cannot be bypassed by modifying frontend state.
+
+### Permission Matrix
+
+| Endpoint category | viewer | operator | admin |
+| --- | :---: | :---: | :---: |
+| Read jobs, executions, webhooks, alerts, reports | ✓ | ✓ | ✓ |
+| Read notification channels, templates, escalation policies | ✓ | ✓ | ✓ |
+| Create/edit/delete jobs | — | ✓ | ✓ |
+| Run jobs manually | — | ✓ | ✓ |
+| Create/edit/delete webhooks, reprocess events | — | ✓ | ✓ |
+| Acknowledge/resolve alerts | — | ✓ | ✓ |
+| Test notification channels | — | ✓ | ✓ |
+| Generate reports | — | ✓ | ✓ |
+| Create/edit/delete notification channels | — | — | ✓ |
+| Create/edit/delete templates | — | — | ✓ |
+| Create/edit/delete escalation policies | — | — | ✓ |
+| User management | — | — | ✓ |
+| View audit logs | — | — | ✓ |
+
+### Last-admin protection
+
+The API prevents the last active `admin` account from being deactivated (`PATCH /api/users/{id}`) or deleted (`DELETE /api/users/{id}`). The check counts active admin accounts before committing the change; the operation is rejected with `400` if it would leave zero active admins.
+
+---
+
+## Audit Log (v0.7.0)
+
+Every sensitive action writes an `AuditLog` record atomically in the same database session as the primary operation. The record cannot be created without also completing the primary operation (and vice versa), because both share a single `session.commit()`.
+
+### What is logged
+
+- **Auth:** login success and failure (includes IP address and user agent)
+- **Jobs:** create, update, delete, run
+- **Webhooks:** create, update, delete, reprocess
+- **Alerts:** acknowledge, resolve
+- **Notification channels:** create, update, delete, activate, deactivate, test
+- **Templates:** create, update, delete
+- **Escalation policies:** create, update, delete, add step, delete step
+- **Reports:** generate
+- **Users:** create, update, delete, reset password
+
+### Metadata masking in audit
+
+The `log_action` service strips the following keys from the `metadata` dict before writing to `audit_logs.metadata`:
+
+`password`, `password_hash`, `secret`, `token`, `api_key`, `webhook_url`, `bot_token`, `smtp_password`, `encryption_key`, `config`, `config_encrypted`, `config_masked`
+
+Nested keys are not traversed (metadata is expected to be shallow). If a sensitive key is present, its value is replaced with `"[redacted]"`.
+
+### Audit log access
+
+`GET /api/audit-logs` is restricted to admin users. Filters: `user_id`, `action`, `resource_type`, `status`, `since`, `until`, `limit` (max 1000, default 100). Results are ordered by `created_at` descending.
+
+### Known audit limitations
+
+- **Append-only by convention.** No database-level immutability (e.g., PostgreSQL row security) prevents a direct database user from deleting rows.
+- **Actor is nullable.** If the `user_id` FK target is deleted, `user_id` becomes `NULL` (`SET NULL` on delete). The action and resource are still recorded.
+- **Unauthenticated events.** Login failures record `user_id=NULL` because no validated user is associated at that point.
+
+---
+
 ## Authentication (v0.2.0)
 
 All API routes except `/api/health`, `/api/version` and the webhook receiver
@@ -164,7 +228,7 @@ change `ADMIN_PASSWORD` immediately after the first login.
 
 ---
 
-## Known Limitations (v0.5.0)
+## Known Limitations (v0.7.0)
 
 | Limitation | Detail |
 | --- | --- |
@@ -173,10 +237,11 @@ change `ADMIN_PASSWORD` immediately after the first login.
 | **No refresh tokens** | Users must re-authenticate when the access token expires. |
 | **Scheduler timing is in-process** | APScheduler runs inside the backend and dispatches to Redis. Run one scheduler-owning API replica. |
 | **Redis rate limiting not implemented** | Redis is used for Celery. Webhook rate limiting remains in-memory per API process. |
-| **Notification credentials are not DB-encrypted** | Channel secrets are masked in API/UI responses, but database-level encryption is not implemented yet. |
+| **Notification credentials encrypted at rest** | Channel secrets are encrypted with Fernet (v0.6.0+). The encryption key must be protected by the operator; database-level key management is not provided. |
 | **Notification retry is simple** | Failed sends are retried briefly and recorded; escalation and provider-specific backoff are not implemented. |
 | **Response preview is truncated** | Only the first 500 bytes of the response body are stored. |
-| **No audit log** | There is no immutable audit trail of resource changes. |
+| **Audit log is append-only by convention** | No row-level immutability; direct database access bypasses the audit trail. |
+| **`last_login_at` requires schema update** | The `last_login_at` column on `users` is added by `create_all` on startup; pre-existing PostgreSQL deployments without Alembic migration must run `ALTER TABLE users ADD COLUMN last_login_at TIMESTAMPTZ` manually. |
 
 ---
 
@@ -200,6 +265,8 @@ Additional hardening steps:
 6. **Review job URLs** — before activating a job that targets an internal service, verify the URL is intentional to prevent accidental SSRF.
 7. **Do not use real tokens in demos** — never include real API keys, tokens or secrets in job configurations used for screenshots or documentation.
 8. **Protect notification credentials** — use dedicated webhook URLs and SMTP credentials, rotate them periodically and restrict database backup access.
+9. **Create a least-privilege operator account** — avoid day-to-day use of the admin account. Create an `operator` role account for operational tasks and reserve `admin` for user management and audit review.
+10. **Review audit logs periodically** — `GET /api/audit-logs` provides a full action history. Schedule periodic reviews as part of your security posture, especially after privilege changes or incident response.
 
 ---
 

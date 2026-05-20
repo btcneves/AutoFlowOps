@@ -1,11 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_user, require_admin
 from app.models.escalation import EscalationEvent, EscalationPolicy, EscalationStep
+from app.models.user import User
 from app.schemas.escalation import (
     EscalationEventRead,
     EscalationPolicyCreate,
@@ -14,6 +16,7 @@ from app.schemas.escalation import (
     EscalationStepCreate,
     EscalationStepRead,
 )
+from app.services.audit import client_ip, log_action
 
 router = APIRouter(prefix="/escalation-policies", tags=["escalation-policies"])
 
@@ -57,11 +60,13 @@ def _policy_to_read(
 @router.post("", response_model=EscalationPolicyRead, status_code=201)
 async def create_policy(
     payload: EscalationPolicyCreate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> EscalationPolicyRead:
     policy = EscalationPolicy(name=payload.name, is_active=payload.is_active)
     session.add(policy)
-    await session.flush()  # get policy.id before adding steps
+    await session.flush()
 
     steps: list[EscalationStep] = []
     for step_data in payload.steps:
@@ -74,6 +79,16 @@ async def create_policy(
         session.add(step)
         steps.append(step)
 
+    await log_action(
+        session,
+        action="escalation.create",
+        resource_type="escalation_policy",
+        resource_id=str(policy.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": policy.name, "steps": len(steps)},
+    )
     await session.commit()
     await session.refresh(policy)
     loaded_steps = await _load_steps(session, policy.id)
@@ -83,6 +98,7 @@ async def create_policy(
 @router.get("", response_model=list[EscalationPolicyRead])
 async def list_policies(
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> list[EscalationPolicyRead]:
     result = await session.execute(
         select(EscalationPolicy).order_by(EscalationPolicy.created_at.desc())
@@ -99,6 +115,7 @@ async def list_policies(
 async def get_policy(
     policy_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> EscalationPolicyRead:
     policy = await _get_policy_or_404(session, policy_id)
     steps = await _load_steps(session, policy.id)
@@ -109,12 +126,24 @@ async def get_policy(
 async def update_policy(
     policy_id: uuid.UUID,
     payload: EscalationPolicyUpdate,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> EscalationPolicyRead:
     policy = await _get_policy_or_404(session, policy_id)
     updates = payload.model_dump(exclude_unset=True)
     for field, value in updates.items():
         setattr(policy, field, value)
+    await log_action(
+        session,
+        action="escalation.update",
+        resource_type="escalation_policy",
+        resource_id=str(policy.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"updated_fields": list(updates.keys())},
+    )
     await session.commit()
     await session.refresh(policy)
     steps = await _load_steps(session, policy.id)
@@ -126,6 +155,7 @@ async def add_step(
     policy_id: uuid.UUID,
     payload: EscalationStepCreate,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_admin),
 ) -> EscalationStepRead:
     await _get_policy_or_404(session, policy_id)
     step = EscalationStep(
@@ -145,6 +175,7 @@ async def delete_step(
     policy_id: uuid.UUID,
     step_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_admin),
 ) -> None:
     result = await session.execute(
         select(EscalationStep).where(
@@ -162,9 +193,21 @@ async def delete_step(
 @router.delete("/{policy_id}", status_code=204)
 async def delete_policy(
     policy_id: uuid.UUID,
+    request: Request,
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> None:
     policy = await _get_policy_or_404(session, policy_id)
+    await log_action(
+        session,
+        action="escalation.delete",
+        resource_type="escalation_policy",
+        resource_id=str(policy.id),
+        user_id=current_user.id,
+        ip_address=client_ip(request),
+        user_agent=request.headers.get("User-Agent"),
+        metadata={"name": policy.name},
+    )
     await session.delete(policy)
     await session.commit()
 
@@ -173,6 +216,7 @@ async def delete_policy(
 async def list_policy_events(
     policy_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> list[EscalationEventRead]:
     await _get_policy_or_404(session, policy_id)
     result = await session.execute(

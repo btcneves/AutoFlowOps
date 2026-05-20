@@ -274,11 +274,42 @@ export interface TokenResponse {
   expires_in: number
 }
 
+export type UserRole = 'admin' | 'operator' | 'viewer'
+
 export interface UserRead {
   id: string
   email: string
   name: string
-  role: string
+  role: UserRole | string
   is_active: boolean
+  created_at: string
+  updated_at: string
+  last_login_at: string | null
+}
+
+export interface UserCreatePayload {
+  email: string
+  name: string
+  password: string
+  role: UserRole
+}
+
+export interface UserUpdatePayload {
+  name?: string
+  role?: UserRole
+  is_active?: boolean
+}
+
+// Audit logs
+export interface AuditLogRead {
+  id: string
+  user_id: string | null
+  action: string
+  resource_type: string | null
+  resource_id: string | null
+  status: string
+  ip_address: string | null
+  user_agent: string | null
+  metadata_: Record<string, unknown> | null
   created_at: string
 }
