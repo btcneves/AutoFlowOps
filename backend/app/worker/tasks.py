@@ -12,6 +12,7 @@ from app.services.http_runner import (
     create_failure_alert,
     run_job_http,
 )
+from app.services.notifications import dispatch_alert_notifications
 from app.worker.celery_app import celery_app
 
 
@@ -79,7 +80,10 @@ async def _execute_http_job(
                 raise
 
         if job.alert_on_failure and execution.status in FAILED_EXECUTION_STATUSES:
-            session.add(create_failure_alert(job, execution))
+            alert = create_failure_alert(job, execution)
+            session.add(alert)
+            await session.flush()
             await session.commit()
+            await dispatch_alert_notifications(session, alert)
 
         return {"execution_id": str(execution.id), "status": execution.status}

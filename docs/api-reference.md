@@ -44,7 +44,7 @@ Response `200 OK`:
 
 ```json
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "app": "AutoFlowOps"
 }
 ```
@@ -384,6 +384,149 @@ curl -X PATCH http://localhost:8000/api/alerts/cccc-3333-.../resolve
 ```
 
 Response `200 OK` — updated alert object with `status: "resolved"` and `resolved_at` set. `409` if already resolved. `404` if not found.
+
+---
+
+## Notification Channels
+
+Notification channel routes are protected. Channel configuration is returned only
+as `config_masked`; full webhook URLs, SMTP passwords and sensitive headers are
+not returned by the API.
+
+### GET /api/notification-channels
+
+List configured notification channels.
+
+```bash
+curl http://localhost:8000/api/notification-channels
+```
+
+Response `200 OK`:
+
+```json
+[
+  {
+    "id": "eeee-5555-...",
+    "name": "Ops Discord",
+    "type": "discord_webhook",
+    "status": "active",
+    "config_masked": {
+      "webhook_url": "https://discord.com/***"
+    },
+    "created_at": "2026-05-20T10:00:00Z",
+    "updated_at": "2026-05-20T10:00:00Z",
+    "last_tested_at": null
+  }
+]
+```
+
+### POST /api/notification-channels
+
+Create a channel. Supported `type` values are `discord_webhook`,
+`smtp_email` and `custom_webhook`.
+
+Discord webhook:
+
+```json
+{
+  "name": "Ops Discord",
+  "type": "discord_webhook",
+  "config": {
+    "webhook_url": "https://discord.com/api/webhooks/..."
+  }
+}
+```
+
+SMTP email:
+
+```json
+{
+  "name": "Ops Email",
+  "type": "smtp_email",
+  "config": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "username": "alerts@example.com",
+    "password": "REPLACE_WITH_SMTP_PASSWORD",
+    "from_email": "alerts@example.com",
+    "to_email": "ops@example.com",
+    "use_tls": true,
+    "use_ssl": false
+  }
+}
+```
+
+Custom webhook:
+
+```json
+{
+  "name": "Ops Webhook",
+  "type": "custom_webhook",
+  "config": {
+    "url": "https://hooks.example.com/autoflowops",
+    "headers": {
+      "Authorization": "Bearer REPLACE_WITH_TOKEN"
+    }
+  }
+}
+```
+
+Response `201 Created` — created channel with masked configuration.
+
+### PATCH /api/notification-channels/{channel_id}
+
+Update name, status or configuration. Changing `type` requires a replacement
+`config` object.
+
+### PATCH /api/notification-channels/{channel_id}/activate
+
+Set channel status to `active`.
+
+### PATCH /api/notification-channels/{channel_id}/deactivate
+
+Set channel status to `paused`.
+
+### POST /api/notification-channels/{channel_id}/test
+
+Send a sample notification and record a delivery result.
+
+Response `200 OK`:
+
+```json
+{
+  "channel": {
+    "id": "eeee-5555-...",
+    "name": "Ops Discord",
+    "type": "discord_webhook",
+    "status": "active",
+    "config_masked": {
+      "webhook_url": "https://discord.com/***"
+    },
+    "created_at": "2026-05-20T10:00:00Z",
+    "updated_at": "2026-05-20T10:00:00Z",
+    "last_tested_at": "2026-05-20T10:05:00Z"
+  },
+  "delivery": {
+    "id": "ffff-6666-...",
+    "alert_id": null,
+    "channel_id": "eeee-5555-...",
+    "channel_name": "Ops Discord",
+    "channel_type": "discord_webhook",
+    "status": "success",
+    "error_message": null,
+    "sent_at": "2026-05-20T10:05:00Z",
+    "created_at": "2026-05-20T10:05:00Z"
+  }
+}
+```
+
+### GET /api/notification-channels/deliveries
+
+List recent notification delivery records.
+
+### DELETE /api/notification-channels/{channel_id}
+
+Delete a channel. Existing delivery records keep the channel name and type.
 
 ---
 

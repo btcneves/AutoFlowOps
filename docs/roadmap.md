@@ -36,6 +36,19 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.5.0)
+
+| Feature | Details |
+| --- | --- |
+| **Notification channels** | CRUD API and frontend page for Discord webhook, SMTP email and custom webhook channels |
+| **Channel testing** | Protected test endpoint sends a sample notification and records the delivery result |
+| **Alert delivery integration** | Critical job and webhook alerts dispatch notifications through active channels |
+| **Delivery history** | Notification delivery records store success/failure, channel metadata, timestamps and masked errors |
+| **Secret masking** | API responses and UI show masked channel configuration; delivery errors are scrubbed before persistence |
+| **Notification tests** | Backend tests cover channel CRUD, test sends, alert dispatch and masked failures; frontend tests cover the channels page |
+
+---
+
 ## Completed (v0.2.0)
 
 | Feature | Details |
@@ -78,7 +91,7 @@ These features are planned but not yet in active development.
 
 | Feature | Description |
 | --- | --- |
-| **External notifications** | Discord webhooks, Telegram messages, email (SMTP) on job failure or alert creation |
+| **Additional notification providers** | Slack, Telegram and richer provider-specific delivery options |
 | **Real-time logs** | WebSocket connection for live execution log streaming in the frontend |
 | **RBAC** | Role-based access control — admin, operator and read-only roles |
 | **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |

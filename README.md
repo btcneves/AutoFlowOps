@@ -1,6 +1,6 @@
 # AutoFlowOps
 
-**Open-source automation platform for scheduled HTTP jobs, API integrations, webhooks, alerts and operational reports.**
+**Open-source automation platform for scheduled HTTP jobs, API integrations, webhooks, alerts, external notifications and operational reports.**
 
 AutoFlowOps helps developers and small teams replace fragile manual processes with reliable, observable and documented automation workflows — self-hosted, reproducible and fully open source.
 
@@ -27,7 +27,8 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - **Jobs** — create, edit and schedule HTTP jobs from the UI or API; run manually or on interval/cron schedules
 - **Executions** — persistent history with status, timings, response previews and masked secrets
 - **Webhooks** — receive external events, store payloads with token validation, reprocess events
-- **Alerts** — automatic alerts on job failures, with acknowledge and resolve workflows
+- **Alerts** — automatic alerts on job and webhook failures, with acknowledge and resolve workflows
+- **Notifications** — send critical alerts to Discord webhooks, SMTP email and custom webhooks
 - **Reports** — export operational history as JSON, Markdown or CSV
 - **Dashboard** — real-time metrics: active jobs, executions, failure rate and 7-day chart
 
@@ -43,6 +44,7 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - Webhook receiver with secret token validation (SHA-256)
 - Execution history with masked secrets and response previews
 - Internal alerting system for failed executions
+- External notification channels for critical operational alerts
 - Operational reports exportable as JSON, Markdown or CSV
 - One-command startup via Docker Compose
 - GitHub Actions CI for backend and frontend
@@ -79,7 +81,8 @@ Browser
               ├─> APScheduler (in-process)
               │     └─> Redis queue
               │           └─> Celery worker (executes jobs, creates executions + alerts)
-              └─> Webhook receiver (validates token, stores events)
+              ├─> Webhook receiver (validates token, stores events)
+              └─> Notification channels (Discord, SMTP, custom webhooks)
 ```
 
 For a detailed breakdown of each component and data flow, see [docs/architecture.md](docs/architecture.md).
@@ -191,8 +194,8 @@ make test
 
 | Suite | Tests | Status |
 | --- | --- | --- |
-| Backend | 140 | Passing |
-| Frontend | 45 | Passing |
+| Backend | 148 | Passing |
+| Frontend | 49 | Passing |
 
 ---
 
