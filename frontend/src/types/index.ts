@@ -50,6 +50,54 @@ export interface AlertRead {
   resolved_at: string | null
 }
 
+export type NotificationChannelType =
+  | 'discord_webhook'
+  | 'smtp_email'
+  | 'custom_webhook'
+export type NotificationChannelStatus = 'active' | 'paused'
+
+export interface NotificationChannelRead {
+  id: string
+  name: string
+  type: NotificationChannelType
+  status: NotificationChannelStatus
+  config_masked: Record<string, unknown>
+  created_at: string
+  updated_at: string
+  last_tested_at: string | null
+}
+
+export interface NotificationChannelPayload {
+  name: string
+  type: NotificationChannelType
+  status?: NotificationChannelStatus
+  config: Record<string, unknown>
+}
+
+export interface NotificationChannelUpdatePayload {
+  name?: string
+  type?: NotificationChannelType
+  status?: NotificationChannelStatus
+  config?: Record<string, unknown>
+}
+
+export interface NotificationDeliveryRead {
+  id: string
+  alert_id: string | null
+  channel_id: string | null
+  channel_name: string
+  channel_type: NotificationChannelType
+  status: string
+  error_message: string | null
+  sent_at: string | null
+  created_at: string
+}
+
+export interface NotificationTestResult {
+  channel: NotificationChannelRead
+  delivery: NotificationDeliveryRead
+}
+
 export interface WebhookEventRead {
   id: string
   webhook_id: string

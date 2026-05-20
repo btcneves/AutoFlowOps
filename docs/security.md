@@ -123,6 +123,29 @@ controls.
 
 ---
 
+## Notification Channel Security (v0.5.0)
+
+Notification channels can contain sensitive delivery configuration:
+
+- Discord webhook URLs
+- SMTP usernames and passwords
+- Custom webhook URLs and headers
+
+API responses and the frontend never return full notification secrets. Channel
+configuration is returned as `config_masked`, and delivery error messages are
+scrubbed before they are stored in `notification_deliveries`.
+
+Current limitation: channel credentials must be available to the backend so
+notifications can be sent. They are stored in the database configuration field
+and protected by response masking, database access control and deployment
+hardening. Database-level encryption for notification credentials is planned for
+a future release.
+
+Custom notification webhook targets are checked by the same SSRF guard used by
+HTTP jobs when `ENABLE_SSRF_PROTECTION=true`.
+
+---
+
 ## Authentication (v0.2.0)
 
 All API routes except `/api/health`, `/api/version` and the webhook receiver
@@ -141,7 +164,7 @@ change `ADMIN_PASSWORD` immediately after the first login.
 
 ---
 
-## Known Limitations (v0.4.0)
+## Known Limitations (v0.5.0)
 
 | Limitation | Detail |
 | --- | --- |
@@ -150,6 +173,8 @@ change `ADMIN_PASSWORD` immediately after the first login.
 | **No refresh tokens** | Users must re-authenticate when the access token expires. |
 | **Scheduler timing is in-process** | APScheduler runs inside the backend and dispatches to Redis. Run one scheduler-owning API replica. |
 | **Redis rate limiting not implemented** | Redis is used for Celery. Webhook rate limiting remains in-memory per API process. |
+| **Notification credentials are not DB-encrypted** | Channel secrets are masked in API/UI responses, but database-level encryption is not implemented yet. |
+| **Notification retry is simple** | Failed sends are retried briefly and recorded; escalation and provider-specific backoff are not implemented. |
 | **Response preview is truncated** | Only the first 500 bytes of the response body are stored. |
 | **No audit log** | There is no immutable audit trail of resource changes. |
 
@@ -174,6 +199,7 @@ Additional hardening steps:
 5. **Keep Docker and the OS updated** — subscribe to security advisories for Ubuntu, Docker, PostgreSQL 16 and Redis.
 6. **Review job URLs** — before activating a job that targets an internal service, verify the URL is intentional to prevent accidental SSRF.
 7. **Do not use real tokens in demos** — never include real API keys, tokens or secrets in job configurations used for screenshots or documentation.
+8. **Protect notification credentials** — use dedicated webhook URLs and SMTP credentials, rotate them periodically and restrict database backup access.
 
 ---
 

@@ -6,6 +6,7 @@ from app.api import (
     executions,
     health,
     jobs,
+    notifications,
     reports,
     stats,
     webhook_receiver,
@@ -27,4 +28,5 @@ router.include_router(executions.router, dependencies=_auth)
 router.include_router(stats.router, tags=["stats"], dependencies=_auth)
 router.include_router(webhooks.router, dependencies=_auth)
 router.include_router(alerts.router, dependencies=_auth)
+router.include_router(notifications.router, dependencies=_auth)
 router.include_router(reports.router, dependencies=_auth)
