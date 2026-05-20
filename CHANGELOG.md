@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-20
+
+### Added
+
+- **Notification channels** — protected CRUD API for Discord webhook, SMTP email and custom webhook channels
+- **Notification Channels UI** — frontend page for listing, creating, editing, testing, activating, pausing and deleting channels
+- **Channel testing** — `POST /api/notification-channels/{id}/test` sends a sample notification and records a delivery result
+- **Alert delivery integration** — critical job and webhook alerts dispatch notifications to active channels
+- **Delivery history** — `notification_deliveries` records success/failure status, timestamps, channel metadata and masked errors
+- **Notification security docs** — configuration guidance and credential masking limitations documented
+- **Release notes** — `docs/release-notes-v0.5.0.md`
+
+### Changed
+
+- Webhook token validation failures and paused webhook deliveries now create critical alerts
+- API responses expose notification configuration only as masked values
+- Frontend navigation now includes Notification Channels
+
+### Test Results (v0.5.0)
+
+| Suite | Status |
+| --- | --- |
+| Backend lint (ruff) | Clean |
+| Backend tests (pytest) | 148 passing |
+| Frontend tests (Vitest) | 49 passing |
+| Frontend lint (ESLint) | Clean |
+| Frontend build | Success |
+| Docker Compose build/smoke | Success |
+| Production config validation | Compose and Caddyfile valid |
+
 ## [0.4.0] - 2026-05-20
 
 ### Added

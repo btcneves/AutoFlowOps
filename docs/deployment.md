@@ -157,6 +157,7 @@ On first start, the backend:
 2. Creates the admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 3. Loads scheduled jobs from the database
 4. Starts the worker so queued manual and scheduled jobs can execute
+5. Loads notification channels from the database when alerts are dispatched
 
 ### 7. Verify
 
@@ -214,6 +215,10 @@ make prod-validate  # Validate docker-compose.prod.yml and Caddyfile syntax
 | `WEBHOOK_RATE_LIMIT_PER_MINUTE` | `60` | No | Per-IP webhook rate limit |
 | `LOG_LEVEL` | `INFO` | No | `DEBUG`, `INFO`, `WARNING` |
 | `DEFAULT_TIMEZONE` | `America/Sao_Paulo` | No | Operational timezone |
+
+Notification channels are configured in the UI or API after login. No provider
+credentials are required in `.env.production`; store only dedicated webhook URLs
+or SMTP credentials created for AutoFlowOps.
 
 ---
 
@@ -313,6 +318,7 @@ docker compose -f docker-compose.prod.yml ps
 | Backend keeps restarting | Migration error on startup | `logs backend`; fix migration, then `docker compose -f docker-compose.prod.yml up -d --build` |
 | `403 Forbidden` on webhook receive | Token mismatch or webhook paused | Check `X-Webhook-Token` header; check webhook status |
 | `429 Too Many Requests` | Rate limit exceeded | Wait a minute or increase `WEBHOOK_RATE_LIMIT_PER_MINUTE` |
+| Notification test fails | Provider URL, SMTP credentials or outbound firewall issue | Check channel config, provider credentials and backend logs |
 
 ### Exec into a container
 

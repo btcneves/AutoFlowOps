@@ -36,6 +36,7 @@ This policy covers vulnerabilities in:
 - The React frontend (`frontend/`)
 - The Docker Compose configuration
 - The Redis/Celery worker queue configuration
+- Notification channel configuration and delivery records
 - The dependency chain (transitive dependencies)
 
 Out of scope:
@@ -70,6 +71,7 @@ See [docs/security.md](docs/security.md) for full details, examples and producti
 - **Webhook secret tokens are stored as SHA-256 hashes**, never in plain text.
 - **Authorization headers are never stored in full** in execution logs.
 - **Redis must stay private** — the production Compose file keeps it on the internal Docker network only.
+- **Notification channel secrets are masked in API responses and UI output**, but database access and backups must be protected.
 - JWT authentication protects API routes except `/api/health`, `/api/version`, `/api/auth/login` and webhook receive. Deploy with HTTPS and strong bootstrap admin credentials before exposing the service publicly.
 
 ---

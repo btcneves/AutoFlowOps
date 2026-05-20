@@ -9,6 +9,7 @@ import { JobDetailPage } from './pages/JobDetailPage'
 import { JobFormPage } from './pages/JobFormPage'
 import { JobsPage } from './pages/JobsPage'
 import { LoginPage } from './pages/LoginPage'
+import { NotificationChannelsPage } from './pages/NotificationChannelsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { WebhooksPage } from './pages/WebhooksPage'
 
@@ -35,6 +36,7 @@ export const router = createBrowserRouter(
         { path: 'executions/:id', element: <ExecutionDetailPage /> },
         { path: 'webhooks', element: <WebhooksPage /> },
         { path: 'alerts', element: <AlertsPage /> },
+        { path: 'notifications', element: <NotificationChannelsPage /> },
         { path: 'reports', element: <ReportsPage /> },
       ],
     },

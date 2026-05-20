@@ -6,7 +6,18 @@ import pytest
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.models import Alert, Base, Execution, Job, Report, User, Webhook, WebhookEvent
+from app.models import (
+    Alert,
+    Base,
+    Execution,
+    Job,
+    NotificationChannel,
+    NotificationDelivery,
+    Report,
+    User,
+    Webhook,
+    WebhookEvent,
+)
 
 
 @pytest.fixture(scope="module")
@@ -46,6 +57,14 @@ def test_report_table_name():
     assert Report.__tablename__ == "reports"
 
 
+def test_notification_channel_table_name():
+    assert NotificationChannel.__tablename__ == "notification_channels"
+
+
+def test_notification_delivery_table_name():
+    assert NotificationDelivery.__tablename__ == "notification_deliveries"
+
+
 def test_all_tables_registered():
     table_names = set(Base.metadata.tables.keys())
     expected = {
@@ -56,6 +75,8 @@ def test_all_tables_registered():
         "webhook_events",
         "alerts",
         "reports",
+        "notification_channels",
+        "notification_deliveries",
     }
     assert expected == table_names
 
@@ -73,6 +94,8 @@ async def test_create_all_tables(sqlite_engine):
         "webhook_events",
         "alerts",
         "reports",
+        "notification_channels",
+        "notification_deliveries",
     }
 
 

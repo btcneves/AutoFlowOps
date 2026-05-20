@@ -7,6 +7,7 @@ const navItems = [
   { to: '/executions', label: 'Executions' },
   { to: '/webhooks', label: 'Webhooks' },
   { to: '/alerts', label: 'Alerts' },
+  { to: '/notifications', label: 'Notifications' },
   { to: '/reports', label: 'Reports' },
 ]
 
