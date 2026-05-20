@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { LiveIndicator } from '../components/ui/LiveIndicator'
 import { useExecutions } from '../hooks/useExecutions'
 import { useJobs } from '../hooks/useJobs'
+import { useWebSocket } from '../hooks/useWebSocket'
 import type { ExecutionRead } from '../types'
 
 function formatDate(iso: string | null): string {
@@ -67,6 +70,18 @@ export function ExecutionsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [jobFilter, setJobFilter] = useState('')
 
+  const queryClient = useQueryClient()
+  const { lastEvent, status: wsStatus } = useWebSocket()
+
+  useEffect(() => {
+    if (
+      lastEvent?.type === 'execution.started' ||
+      lastEvent?.type === 'execution.completed'
+    ) {
+      void queryClient.invalidateQueries({ queryKey: ['executions'] })
+    }
+  }, [lastEvent, queryClient])
+
   const { data: jobs } = useJobs()
   const { data: executions, isLoading, isError } = useExecutions({
     status: statusFilter || undefined,
@@ -85,6 +100,7 @@ export function ExecutionsPage() {
             Full execution history with timings, status and error details.
           </p>
         </div>
+        <LiveIndicator status={wsStatus} />
       </div>
 
       {/* Filters */}

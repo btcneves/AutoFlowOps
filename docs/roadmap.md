@@ -4,6 +4,27 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v0.8.0)
+
+| Feature | Details |
+| --- | --- |
+| **WebSocket endpoint** | `GET /ws/events?token=<JWT>` — upgrades to a persistent connection; JWT validated against DB on each connect; rejected connections receive code 1008 |
+| **ConnectionManager** | In-process registry of active WebSocket connections; dead connections removed on next broadcast |
+| **Redis Pub/Sub fan-out** | Single asyncio subscriber task per backend process; forwards `autoflowops:events` channel messages to all connected clients; fails gracefully when Redis is unavailable |
+| **`event_publisher` service** | `publish_event()` (sync, Celery) and `publish_event_async()` (async, FastAPI); swallows publish errors so the primary execution path is never blocked |
+| **`execution.started` event** | Published by `http_runner` when an execution transitions to `running` |
+| **`execution.completed` event** | Published by both `http_runner` and the Celery worker on every terminal state, including `retrying` |
+| **`alert.created` event** | Published when a job failure creates an alert, from both the APScheduler and Celery paths |
+| **`useWebSocket` hook** | Exponential-backoff reconnect (max 30s); stops reconnecting on code 1008; closes on unmount; no reconnect when access token is absent |
+| **`LiveIndicator` component** | Pulsing green dot when connected; grey dot when connecting; invisible when closed or auth-failed (polling fallback still active) |
+| **Real-time Executions page** | Invalidates query cache on `execution.started` / `execution.completed`; shows `LiveIndicator` |
+| **Real-time Jobs page** | Invalidates jobs cache on `execution.completed` (updates `last_run_at`); shows `LiveIndicator` |
+| **Real-time Alerts page** | Invalidates alerts cache on `alert.created`; shows `LiveIndicator` |
+| **WS backend tests** | 7 tests: no token, invalid token, ghost-user token, valid admin, ping/pong, broadcast, dead-connection cleanup |
+| **WS frontend tests** | 10 tests in `useWebSocket.test.ts`: connection, initial status, auth_error (no token), open, lastEvent, pong/connected filtering, 1008 no-reconnect, reconnect on normal close, close on unmount |
+
+---
+
 ## Completed (v0.7.0)
 
 | Feature | Details |
@@ -131,7 +152,7 @@ These features are planned but not yet in active development.
 | Feature | Description |
 | --- | --- |
 | **Additional notification providers** | PagerDuty, OpsGenie and richer provider-specific delivery options |
-| **Real-time logs** | WebSocket connection for live execution log streaming in the frontend |
+| **Real-time logs** | ~~Delivered in v0.8.0~~ |
 | **RBAC** | ~~Delivered in v0.7.0~~ |
 | **Advanced retry policy UI** | Expose retry policy controls and retry history in the frontend |
 | **PDF reports** | Export operational reports as PDF in addition to JSON, Markdown and CSV |

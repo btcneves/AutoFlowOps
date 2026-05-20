@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { LiveIndicator } from '../components/ui/LiveIndicator'
 import { useAcknowledgeAlert, useAlerts, useResolveAlert } from '../hooks/useAlerts'
+import { useWebSocket } from '../hooks/useWebSocket'
 import type { AlertRead } from '../types'
 
 function formatDate(iso: string | null): string {
@@ -77,6 +80,15 @@ function AlertRow({ alert }: { alert: AlertRead }) {
 
 export function AlertsPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+  const queryClient = useQueryClient()
+  const { lastEvent, status: wsStatus } = useWebSocket()
+
+  useEffect(() => {
+    if (lastEvent?.type === 'alert.created') {
+      void queryClient.invalidateQueries({ queryKey: ['alerts'] })
+    }
+  }, [lastEvent, queryClient])
+
   const { data: alerts, isLoading, isError } = useAlerts(statusFilter)
 
   const filterOptions: { label: string; value: string | undefined }[] = [
@@ -95,6 +107,8 @@ export function AlertsPage() {
             Automatic alerts generated on job failures and other events.
           </p>
         </div>
+        <div className="flex items-center gap-4">
+        <LiveIndicator status={wsStatus} />
         <div className="flex gap-1">
           {filterOptions.map((opt) => (
             <button
@@ -109,6 +123,7 @@ export function AlertsPage() {
               {opt.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 

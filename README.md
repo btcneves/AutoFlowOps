@@ -52,6 +52,7 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - Audit log of all sensitive operations with actor, resource and masked metadata
 - User management API and frontend (admin-only)
 - Operational reports exportable as JSON, Markdown or CSV
+- Real-time event stream via WebSocket — live updates for executions, jobs and alerts without page refresh
 - One-command startup via Docker Compose
 - GitHub Actions CI for backend and frontend
 - Open-source under MIT License
@@ -200,8 +201,8 @@ make test
 
 | Suite | Tests | Status |
 | --- | --- | --- |
-| Backend | 209 | Passing |
-| Frontend | 65 | Passing |
+| Backend | 216 | Passing |
+| Frontend | 75 | Passing |
 
 ---
 
@@ -305,7 +306,7 @@ autoflowops/
 | RBAC (role-based access control) | ✅ Done |
 | Audit log with actor and masked metadata | ✅ Done |
 | User management API and frontend | ✅ Done |
-| Real-time logs via WebSocket | Planned |
+| Real-time event stream via WebSocket | ✅ Done |
 | Advanced retry policy UI | Planned |
 
 See [docs/roadmap.md](docs/roadmap.md) for the full roadmap.

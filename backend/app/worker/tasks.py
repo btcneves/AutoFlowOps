@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.database import async_session_factory
 from app.models.execution import Execution
 from app.models.job import Job
+from app.services.event_publisher import publish_event
 from app.services.http_runner import (
     FAILED_EXECUTION_STATUSES,
     create_failure_alert,
@@ -70,6 +71,16 @@ async def _execute_http_job(
             execution.status = "retrying"
             session.add(execution)
             await session.commit()
+            publish_event(
+                "execution.completed",
+                {
+                    "execution_id": str(execution.id),
+                    "job_id": str(execution.job_id),
+                    "job_name": job.name,
+                    "status": "retrying",
+                    "trigger_type": trigger_type,
+                },
+            )
             try:
                 raise celery_task.retry(
                     countdown=job.retry_delay_seconds,
@@ -79,11 +90,37 @@ async def _execute_http_job(
             except Retry:
                 raise
 
+        alert = None
         if job.alert_on_failure and execution.status in FAILED_EXECUTION_STATUSES:
             alert = create_failure_alert(job, execution)
             session.add(alert)
             await session.flush()
             await session.commit()
             await dispatch_alert_notifications(session, alert)
+
+        publish_event(
+            "execution.completed",
+            {
+                "execution_id": str(execution.id),
+                "job_id": str(execution.job_id),
+                "job_name": job.name,
+                "status": execution.status,
+                "duration_ms": execution.duration_ms,
+                "response_status_code": execution.response_status_code,
+                "trigger_type": trigger_type,
+            },
+        )
+
+        if alert is not None:
+            publish_event(
+                "alert.created",
+                {
+                    "alert_id": str(alert.id),
+                    "title": alert.title,
+                    "severity": alert.severity,
+                    "status": alert.status,
+                    "source_type": alert.source_type,
+                },
+            )
 
         return {"execution_id": str(execution.id), "status": execution.status}
