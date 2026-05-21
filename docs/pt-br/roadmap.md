@@ -4,6 +4,29 @@ Este documento acompanha o status das funcionalidades do AutoFlowOps entre as fa
 
 ---
 
+## Concluído (v1.2.0)
+
+| Funcionalidade | Detalhes |
+| --- | --- |
+| **Validação de membership em workspace** | Usuários não-admin recebem `403 Forbidden` ao usar um `X-Workspace-ID` do qual não são membros; role admin ignora a verificação; 5 novos testes |
+| **Documentação da chave de criptografia** | `NOTIFICATION_ENCRYPTION_KEY` adicionada à tabela de referência de variáveis de ambiente e checklist de produção em `docs/deployment.md`; guia de backup e rotação adicionado em `docs/security.md` |
+| **Métricas Prometheus** | Endpoint `/metrics` em formato Prometheus via `prometheus-fastapi-instrumentator`; histograma HTTP auto-instrumentado; contadores de negócio `autoflowops_job_executions_total` e `autoflowops_alerts_created_total` |
+| **Logging estruturado** | Integração com `structlog` e injeção de variáveis de contexto (`request_id`, `user_id`, `workspace_id`); saída legível em desenvolvimento, JSON em produção |
+| **Stack Prometheus + Grafana** | `docker-compose.observability.yml` com Prometheus v2.53.0 e Grafana v11.1.0; datasource e dashboard de 7 painéis provisionados automaticamente; targets `obs-up` / `obs-down` / `obs-logs` no Makefile |
+
+---
+
+## Concluído (v1.1.0)
+
+| Funcionalidade | Detalhes |
+| --- | --- |
+| **Canal PagerDuty** | Tipo `pagerduty` usando Events API v2; `routing_key` criptografada em repouso e mascarada nas respostas; testável pelo endpoint de teste de canal |
+| **Canal OpsGenie** | Tipo `opsgenie` com suporte a regiões US/EU; `api_key` criptografada e mascarada; lista `responders` opcional |
+| **Exportação de relatórios em PDF** | `GET /api/reports/{id}/download?format=pdf` via `reportlab`; seções do PDF cobrem métricas de resumo, jobs com falha, alertas e recomendações; botão de download PDF adicionado à página de Relatórios |
+| **Multi-workspace** | Tabelas `workspaces` e `workspace_memberships`; workspace padrão criado automaticamente na inicialização; todos os recursos de domínio aceitam o header `X-Workspace-ID` para filtragem por namespace; APIs de CRUD de workspace e gerenciamento de membros; seletor de workspace no sidebar do frontend |
+
+---
+
 ## Concluído (v1.0.0)
 
 | Funcionalidade | Detalhes |
@@ -176,14 +199,9 @@ Estas funcionalidades estão planejadas mas ainda não estão em desenvolvimento
 
 | Funcionalidade | Descrição |
 | --- | --- |
-| **Provedores de notificação adicionais** | PagerDuty, OpsGenie e opções de entrega mais ricas específicas por provedor |
-| **Logs em tempo real** | ~~Entregue em v0.8.0~~ |
-| **RBAC** | ~~Entregue em v0.7.0~~ |
-| **Interface avançada de política de retry** | ~~Entregue em v1.0.0~~ |
-| **Relatórios em PDF** | Exportar relatórios operacionais como PDF além de JSON, Markdown e CSV |
-| **Multi-workspace** | Isolamento de namespace para times ou projetos dentro de uma única instância |
-| **Registry de imagens Docker** | ~~Entregue em v0.9.0~~ |
-| **Log de auditoria** | ~~Entregue em v0.7.0~~ |
+| **Regras de alerta condicional** | Disparar alertas com base em thresholds ou condições de campos além de falhas de job |
+| **Extensões de provedores de notificação** | Opções de entrega mais ricas por provedor (chaves de dedup PagerDuty, alias OpsGenie, templates de payload customizado) |
+| **Integração de agregação de logs** | Configuração de envio para Loki ou Elastic com schema de labels documentado |
 
 ---
 
