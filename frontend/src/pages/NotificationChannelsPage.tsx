@@ -57,8 +57,6 @@ function ChannelForm({
   const [slackUrl, setSlackUrl] = useState('')
   const [telegramToken, setTelegramToken] = useState('')
   const [telegramChatId, setTelegramChatId] = useState('')
-  const [customUrl, setCustomUrl] = useState('')
-  const [customHeaders, setCustomHeaders] = useState('')
   const [smtpHost, setSmtpHost] = useState('')
   const [smtpPort, setSmtpPort] = useState('587')
   const [smtpUsername, setSmtpUsername] = useState('')
@@ -68,9 +66,14 @@ function ChannelForm({
   const [smtpTls, setSmtpTls] = useState(true)
   const [smtpSsl, setSmtpSsl] = useState(false)
   const [pdRoutingKey, setPdRoutingKey] = useState('')
+  const [pdDedupKeyTemplate, setPdDedupKeyTemplate] = useState('')
   const [opsApiKey, setOpsApiKey] = useState('')
   const [opsRegion, setOpsRegion] = useState<'us' | 'eu'>('us')
   const [opsResponders, setOpsResponders] = useState('')
+  const [opsPriority, setOpsPriority] = useState('')
+  const [customUrl, setCustomUrl] = useState('')
+  const [customHeaders, setCustomHeaders] = useState('')
+  const [customPayloadTemplate, setCustomPayloadTemplate] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const isPending = create.isPending || update.isPending
@@ -101,11 +104,15 @@ function ChannelForm({
       if (customHeaders.trim()) {
         headers = JSON.parse(customHeaders) as Record<string, string>
       }
-      return { url: customUrl, method: 'POST', headers }
+      const cwResult: Record<string, unknown> = { url: customUrl, method: 'POST', headers }
+      if (customPayloadTemplate.trim()) cwResult.payload_template = customPayloadTemplate.trim()
+      return cwResult
     }
     if (type === 'pagerduty') {
       if (!pdRoutingKey) return null
-      return { routing_key: pdRoutingKey }
+      const pdResult: Record<string, unknown> = { routing_key: pdRoutingKey }
+      if (pdDedupKeyTemplate.trim()) pdResult.dedup_key_template = pdDedupKeyTemplate.trim()
+      return pdResult
     }
     if (type === 'opsgenie') {
       if (!opsApiKey) return null
@@ -113,6 +120,7 @@ function ChannelForm({
       if (opsResponders.trim()) {
         result.responders = JSON.parse(opsResponders) as unknown[]
       }
+      if (opsPriority) result.priority = opsPriority
       return result
     }
     if (!smtpHost || !smtpPort || !smtpFrom || !smtpTo) return null
@@ -255,6 +263,10 @@ function ChannelForm({
             {t('channels.labelHeadersJson')}
             <input value={customHeaders} onChange={(e) => setCustomHeaders(e.target.value)} placeholder={t('channels.placeholderHeaders')} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm" />
           </label>
+          <label className="col-span-2 text-xs font-medium text-gray-600">
+            {t('channels.labelPayloadTemplate')}
+            <input value={customPayloadTemplate} onChange={(e) => setCustomPayloadTemplate(e.target.value)} placeholder={t('channels.placeholderPayloadTemplate')} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono" />
+          </label>
         </div>
       )}
 
@@ -296,7 +308,7 @@ function ChannelForm({
       )}
 
       {type === 'pagerduty' && (
-        <div className="mt-3">
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="text-xs font-medium text-gray-600">
             {t('channels.labelRoutingKey')}
             <input
@@ -307,11 +319,20 @@ function ChannelForm({
               className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
             />
           </label>
+          <label className="text-xs font-medium text-gray-600">
+            {t('channels.labelDedupKeyTemplate')}
+            <input
+              value={pdDedupKeyTemplate}
+              onChange={(e) => setPdDedupKeyTemplate(e.target.value)}
+              placeholder={t('channels.placeholderDedupKeyTemplate')}
+              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
         </div>
       )}
 
       {type === 'opsgenie' && (
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="mt-3 grid gap-3 md:grid-cols-4">
           <label className="text-xs font-medium text-gray-600">
             {t('channels.labelApiKey')}
             <input
@@ -327,6 +348,17 @@ function ChannelForm({
             <select value={opsRegion} onChange={(e) => setOpsRegion(e.target.value as 'us' | 'eu')} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
               <option value="us">US</option>
               <option value="eu">EU</option>
+            </select>
+          </label>
+          <label className="text-xs font-medium text-gray-600">
+            {t('channels.labelPriority')}
+            <select value={opsPriority} onChange={(e) => setOpsPriority(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm">
+              <option value="">{t('channels.priorityAuto')}</option>
+              <option value="P1">P1</option>
+              <option value="P2">P2</option>
+              <option value="P3">P3</option>
+              <option value="P4">P4</option>
+              <option value="P5">P5</option>
             </select>
           </label>
           <label className="text-xs font-medium text-gray-600">
