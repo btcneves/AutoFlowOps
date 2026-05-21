@@ -7,7 +7,9 @@ _TEST_DB_PATH = Path(".pytest-autoflowops.db")
 _TEST_DB_PATH.unlink(missing_ok=True)
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///./{_TEST_DB_PATH}"
 os.environ["REDIS_URL"] = "redis://localhost:0/0"
-os.environ["JWT_SECRET_KEY"] = "test-secret-key-autoflowops-ci-placeholder-do-not-use-in-production"
+os.environ["JWT_SECRET_KEY"] = (
+    "test-secret-key-autoflowops-ci-placeholder-do-not-use-in-production"
+)
 
 import pytest
 from fastapi.testclient import TestClient
