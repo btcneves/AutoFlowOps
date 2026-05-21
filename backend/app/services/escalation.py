@@ -33,7 +33,10 @@ async def dispatch_via_escalation_policies(
     """
     result = await session.execute(
         select(EscalationPolicy)
-        .where(EscalationPolicy.is_active.is_(True))
+        .where(
+            EscalationPolicy.is_active.is_(True),
+            EscalationPolicy.workspace_id == alert.workspace_id,
+        )
         .order_by(EscalationPolicy.created_at.asc())
     )
     policies = result.scalars().all()
@@ -60,6 +63,7 @@ async def dispatch_via_escalation_policies(
                 select(NotificationChannel).where(
                     NotificationChannel.id == step.channel_id,
                     NotificationChannel.status == "active",
+                    NotificationChannel.workspace_id == alert.workspace_id,
                 )
             )
             channel = channel_result.scalar_one_or_none()
@@ -153,6 +157,7 @@ async def process_pending_escalation_events(session: AsyncSession) -> int:
             select(NotificationChannel).where(
                 NotificationChannel.id == event.channel_id,
                 NotificationChannel.status == "active",
+                NotificationChannel.workspace_id == alert.workspace_id,
             )
         )
         channel = channel_result.scalar_one_or_none()

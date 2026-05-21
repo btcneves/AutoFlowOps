@@ -1,4 +1,12 @@
+# ruff: noqa: E402
+import os
 import uuid
+from pathlib import Path
+
+_TEST_DB_PATH = Path(".pytest-autoflowops.db")
+_TEST_DB_PATH.unlink(missing_ok=True)
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///./{_TEST_DB_PATH}"
+os.environ["REDIS_URL"] = "redis://localhost:0/0"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +19,10 @@ from app.main import app
 from app.models.base import Base
 from app.models.user import User
 from app.services.scheduler import get_scheduler
+
+
+def pytest_sessionfinish(session, exitstatus):  # noqa: ANN001
+    _TEST_DB_PATH.unlink(missing_ok=True)
 
 
 @pytest.fixture(autouse=True)

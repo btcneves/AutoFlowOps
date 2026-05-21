@@ -76,6 +76,7 @@ O schema Alembic cria as seguintes tabelas:
 | `webhooks` | Definições de webhooks de entrada: slug, token com hash, status |
 | `webhook_events` | Eventos individuais recebidos em cada endpoint de webhook |
 | `alerts` | Alertas operacionais internos gerados por falhas ou criados manualmente |
+| `alert_rules` | Regras condicionais de alerta por job para status, duração, corpo da resposta e limites de falhas consecutivas |
 | `notification_channels` | Destinos externos de notificação e configuração mascarada do canal |
 | `notification_deliveries` | Resultados de entrega por alerta para os canais de notificação configurados |
 | `reports` | Conteúdo canônico salvo do relatório (JSON) e metadados |

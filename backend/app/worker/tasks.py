@@ -7,10 +7,12 @@ from sqlalchemy import select
 from app.database import async_session_factory
 from app.models.execution import Execution
 from app.models.job import Job
+from app.observability import alerts_created_total
 from app.services.event_publisher import publish_event
 from app.services.http_runner import (
     FAILED_EXECUTION_STATUSES,
     create_failure_alert,
+    evaluate_alert_rules,
     run_job_http,
 )
 from app.services.notifications import dispatch_alert_notifications
@@ -90,13 +92,26 @@ async def _execute_http_job(
             except Retry:
                 raise
 
-        alert = None
+        alerts = []
         if job.alert_on_failure and execution.status in FAILED_EXECUTION_STATUSES:
             alert = create_failure_alert(job, execution)
             session.add(alert)
             await session.flush()
+            alerts_created_total.labels(severity=alert.severity).inc()
+            alerts.append(alert)
+
+        if execution.status != "retrying":
+            rule_alerts = await evaluate_alert_rules(job, execution, session)
+            for rule_alert in rule_alerts:
+                session.add(rule_alert)
+                await session.flush()
+                alerts_created_total.labels(severity=rule_alert.severity).inc()
+                alerts.append(rule_alert)
+
+        if alerts:
             await session.commit()
-            await dispatch_alert_notifications(session, alert)
+            for alert in alerts:
+                await dispatch_alert_notifications(session, alert)
 
         publish_event(
             "execution.completed",
@@ -111,7 +126,7 @@ async def _execute_http_job(
             },
         )
 
-        if alert is not None:
+        for alert in alerts:
             publish_event(
                 "alert.created",
                 {

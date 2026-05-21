@@ -1,4 +1,5 @@
 from app.models.alert import Alert
+from app.models.alert_rule import AlertRule
 from app.models.audit_log import AuditLog
 from app.models.base import Base
 from app.models.escalation import EscalationEvent, EscalationPolicy, EscalationStep
@@ -14,6 +15,7 @@ from app.models.workspace import Workspace, WorkspaceMembership
 __all__ = [
     "Base",
     "Alert",
+    "AlertRule",
     "AuditLog",
     "EscalationEvent",
     "EscalationPolicy",

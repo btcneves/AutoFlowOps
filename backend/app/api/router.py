@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api import (
+    alert_rules,
     alerts,
     audit_logs,
     auth,
@@ -29,6 +30,7 @@ router.include_router(webhook_receiver.router)
 # Protected endpoints — require a valid JWT Bearer token
 _auth = [Depends(get_current_user)]
 router.include_router(jobs.router, dependencies=_auth)
+router.include_router(alert_rules.router, dependencies=_auth)
 router.include_router(executions.router, dependencies=_auth)
 router.include_router(stats.router, tags=["stats"], dependencies=_auth)
 router.include_router(webhooks.router, dependencies=_auth)

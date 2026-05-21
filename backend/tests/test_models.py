@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.models import (
     Alert,
+    AlertRule,
     AuditLog,
     Base,
     Execution,
@@ -54,6 +55,10 @@ def test_alert_table_name():
     assert Alert.__tablename__ == "alerts"
 
 
+def test_alert_rule_table_name():
+    assert AlertRule.__tablename__ == "alert_rules"
+
+
 def test_report_table_name():
     assert Report.__tablename__ == "reports"
 
@@ -79,6 +84,7 @@ def test_all_tables_registered():
         "webhooks",
         "webhook_events",
         "alerts",
+        "alert_rules",
         "reports",
         "notification_channels",
         "notification_deliveries",
@@ -105,6 +111,7 @@ async def test_create_all_tables(sqlite_engine):
         "webhooks",
         "webhook_events",
         "alerts",
+        "alert_rules",
         "reports",
         "notification_channels",
         "notification_deliveries",

@@ -84,20 +84,31 @@ def upgrade() -> None:
     )
 
     for table in _DOMAIN_TABLES:
-        op.add_column(
-            table,
-            sa.Column(
-                "workspace_id",
-                sa.Uuid(),
-                sa.ForeignKey("workspaces.id", ondelete="SET NULL"),
-                nullable=True,
-            ),
-        )
+        with op.batch_alter_table(table) as batch_op:
+            batch_op.add_column(
+                sa.Column(
+                    "workspace_id",
+                    sa.Uuid(),
+                    nullable=True,
+                )
+            )
+            batch_op.create_foreign_key(
+                f"fk_{table}_workspace_id_workspaces",
+                "workspaces",
+                ["workspace_id"],
+                ["id"],
+                ondelete="SET NULL",
+            )
 
 
 def downgrade() -> None:
     for table in reversed(_DOMAIN_TABLES):
-        op.drop_column(table, "workspace_id")
+        with op.batch_alter_table(table) as batch_op:
+            batch_op.drop_constraint(
+                f"fk_{table}_workspace_id_workspaces",
+                type_="foreignkey",
+            )
+            batch_op.drop_column("workspace_id")
 
     op.drop_index(
         op.f("ix_workspace_memberships_user_id"), table_name="workspace_memberships"

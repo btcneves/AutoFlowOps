@@ -30,6 +30,7 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - **Executions** — persistent history with status, timings, response previews and masked secrets
 - **Webhooks** — receive external events, store payloads with token validation, reprocess events
 - **Alerts** — automatic alerts on job and webhook failures, with acknowledge and resolve workflows
+- **Conditional alert rules** — trigger alerts from HTTP status, runtime, response text or consecutive failure thresholds
 - **Notifications** — send critical alerts to Discord, Telegram, SMTP email and custom webhooks
 - **Escalation policies** — multi-step escalation with configurable delays per step
 - **Roles** — admin, operator and viewer roles enforced server-side; audit trail of all sensitive actions
@@ -48,6 +49,7 @@ AutoFlowOps centralises these routines in a single self-hosted platform:
 - Webhook receiver with secret token validation (SHA-256)
 - Execution history with masked secrets and response previews
 - Internal alerting system for failed executions
+- Per-job conditional alert rules for custom operational thresholds
 - External notification channels for critical operational alerts (Discord, Telegram, SMTP, custom webhooks)
 - Notification templates and multi-step escalation policies
 - Role-based access control (admin / operator / viewer) enforced server-side
@@ -130,9 +132,9 @@ The script asks for an image tag (default `latest`), copies `.env.example` to `.
 To run a specific release:
 
 ```bash
-IMAGE_TAG=v1.1.0 bash scripts/setup.sh
+IMAGE_TAG=v1.2.0 bash scripts/setup.sh
 # or
-IMAGE_TAG=v1.1.0 make registry-up
+IMAGE_TAG=v1.2.0 make registry-up
 ```
 
 ### Option B — Build from source
@@ -232,8 +234,8 @@ make test
 
 | Suite | Tests | Status |
 | --- | --- | --- |
-| Backend | 216 | Passing |
-| Frontend | 75 | Passing |
+| Backend | 260 | Passing |
+| Frontend | 76 | Passing |
 
 ---
 

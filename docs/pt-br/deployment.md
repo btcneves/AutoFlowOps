@@ -19,7 +19,7 @@ O AutoFlowOps publica imagens Docker versionadas no GHCR a cada tag de release. 
 | Backend | `ghcr.io/btcneves/autoflowops-backend` |
 | Frontend | `ghcr.io/btcneves/autoflowops-frontend` |
 
-Tags disponíveis: `latest`, `vX.Y.Z`, `X.Y.Z`, `X.Y` (ex: `v1.0.0`, `1.0.0`, `1.0`).
+Tags disponíveis: `latest`, `vX.Y.Z`, `X.Y.Z`, `X.Y` (ex: `v1.2.0`, `1.2.0`, `1.2`).
 
 ### Setup rápido (interativo)
 
@@ -42,7 +42,7 @@ O script:
 ### Não-interativo (CI / ambientes com script)
 
 ```bash
-IMAGE_TAG=v1.0.0 bash scripts/setup.sh
+IMAGE_TAG=v1.2.0 bash scripts/setup.sh
 ```
 
 ### Atalhos do Makefile
@@ -52,7 +52,7 @@ IMAGE_TAG=v1.0.0 bash scripts/setup.sh
 make pull
 
 # Iniciar stack usando imagens GHCR
-IMAGE_TAG=v1.0.0 make registry-up
+IMAGE_TAG=v1.2.0 make registry-up
 
 # Parar
 make registry-down
@@ -64,15 +64,15 @@ make registry-logs
 ### Fixar uma versão específica
 
 ```bash
-IMAGE_TAG=v1.0.0 docker compose -f docker-compose.registry.yml up -d
+IMAGE_TAG=v1.2.0 docker compose -f docker-compose.registry.yml up -d
 ```
 
 ### Atualizar para uma nova versão
 
 ```bash
-IMAGE_TAG=v1.0.0 make pull
-IMAGE_TAG=v1.0.0 make registry-down
-IMAGE_TAG=v1.0.0 make registry-up
+IMAGE_TAG=v1.2.0 make pull
+IMAGE_TAG=v1.2.0 make registry-down
+IMAGE_TAG=v1.2.0 make registry-up
 ```
 
 O container do backend executa `alembic upgrade head` na inicialização e aplica qualquer migração pendente automaticamente.
@@ -399,7 +399,7 @@ docker compose -f docker-compose.prod.yml ps
 | Badge WS fica em "Conectando…" | Backend indisponível ou `VITE_API_BASE_URL` incorreto | Verifique se `VITE_API_BASE_URL` está configurado corretamente; verifique console do browser para erros WS |
 | Eventos WS não recebidos | Redis não está rodando | `logs redis`; verifique `REDIS_URL`; logs do backend mostram "Redis WS subscriber exited" se desconectado |
 | `docker pull` falha com 403 | Pacote GHCR é privado | Vá para repositório → Packages → torne o pacote público, ou faça `docker login ghcr.io` com um token |
-| Stack inicia mas mostra versão antiga | `IMAGE_TAG` não definido ou `latest` em cache | Execute `make pull IMAGE_TAG=v1.0.0` depois `make registry-up IMAGE_TAG=v1.0.0` |
+| Stack inicia mas mostra versão antiga | `IMAGE_TAG` não definido ou `latest` em cache | Execute `make pull IMAGE_TAG=v1.2.0` depois `make registry-up IMAGE_TAG=v1.2.0` |
 
 ### Entrar em um container
 

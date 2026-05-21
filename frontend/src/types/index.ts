@@ -334,6 +334,43 @@ export interface WorkspaceMemberCreate {
   role?: string
 }
 
+// Alert rules
+export type AlertRuleConditionType =
+  | 'http_status_gte'
+  | 'duration_ms_gte'
+  | 'response_body_contains'
+  | 'consecutive_failures_gte'
+
+export type AlertRuleSeverity = 'error' | 'warning' | 'info'
+
+export interface AlertRuleRead {
+  id: string
+  job_id: string
+  condition_type: AlertRuleConditionType
+  condition_value: string
+  severity: AlertRuleSeverity
+  message: string | null
+  is_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AlertRuleCreate {
+  condition_type: AlertRuleConditionType
+  condition_value: string
+  severity?: AlertRuleSeverity
+  message?: string | null
+  is_enabled?: boolean
+}
+
+export interface AlertRuleUpdate {
+  condition_type?: AlertRuleConditionType
+  condition_value?: string
+  severity?: AlertRuleSeverity
+  message?: string | null
+  is_enabled?: boolean
+}
+
 // Audit logs
 export interface AuditLogRead {
   id: string

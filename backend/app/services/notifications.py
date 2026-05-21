@@ -285,7 +285,10 @@ async def dispatch_alert_notifications(
     # No active escalation policies — dispatch to all active channels directly
     result = await session.execute(
         select(NotificationChannel)
-        .where(NotificationChannel.status == "active")
+        .where(
+            NotificationChannel.status == "active",
+            NotificationChannel.workspace_id == alert.workspace_id,
+        )
         .order_by(NotificationChannel.created_at.asc())
     )
     deliveries: list[NotificationDelivery] = []
