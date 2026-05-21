@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
-from app.models.workspace import Workspace
+from app.models.workspace import Workspace, WorkspaceMembership
 from app.services.auth import decode_access_token
 
 _bearer = HTTPBearer()
@@ -69,6 +69,7 @@ async def require_operator(
 async def get_active_workspace(
     x_workspace_id: str | None = Header(default=None),
     session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Workspace | None:
     if not x_workspace_id:
         return None
@@ -86,4 +87,17 @@ async def get_active_workspace(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workspace not found",
         )
+    # Admins can access any workspace; all other roles require explicit membership.
+    if _ROLE_LEVEL.get(current_user.role, 0) < 3:
+        membership = await session.execute(
+            select(WorkspaceMembership).where(
+                WorkspaceMembership.workspace_id == ws_uuid,
+                WorkspaceMembership.user_id == current_user.id,
+            )
+        )
+        if membership.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this workspace",
+            )
     return workspace

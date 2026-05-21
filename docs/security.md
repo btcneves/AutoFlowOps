@@ -145,6 +145,40 @@ and backups.
 Custom notification webhook targets are checked by the same SSRF guard used by
 HTTP jobs when `ENABLE_SSRF_PROTECTION=true`.
 
+### Encryption key — backup and rotation
+
+`NOTIFICATION_ENCRYPTION_KEY` is a Fernet key that protects all stored channel
+credentials. Losing it means all notification channel credentials become
+unrecoverable and channels must be reconfigured.
+
+**Generating a key:**
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+**Backup — required before any production deployment:**
+
+Store the key in at least two separate, access-controlled locations (e.g., a
+password manager, a secrets manager, an encrypted file on offline media). Do not
+store it only in `.env.production` on the server.
+
+**Rotating the key:**
+
+Key rotation requires re-encrypting all existing channel credentials:
+
+1. Generate a new Fernet key.
+2. For each notification channel, read the plaintext credentials via the API or
+   directly from the database after decrypting with the old key.
+3. Re-save each channel (via `PATCH /api/notification-channels/{id}`) with the
+   new key active — this re-encrypts credentials at rest.
+4. Update `NOTIFICATION_ENCRYPTION_KEY` in `.env.production` and restart the
+   backend.
+5. Verify channels work with a test dispatch (`POST /api/notification-channels/{id}/test`).
+
+There is no automated rotation command. All steps require intentional operator
+action to avoid accidental credential loss.
+
 ---
 
 ## Role-Based Access Control (v0.7.0)
@@ -238,7 +272,7 @@ change `ADMIN_PASSWORD` immediately after the first login.
 | **No refresh tokens** | Users must re-authenticate when the access token expires. |
 | **Scheduler timing is in-process** | APScheduler runs inside the backend and dispatches to Redis. Run one scheduler-owning API replica. |
 | **Redis rate limiting not implemented** | Redis is used for Celery. Webhook rate limiting remains in-memory per API process. |
-| **Notification credentials encrypted at rest** | Channel secrets are encrypted with Fernet (v0.6.0+). The encryption key must be protected by the operator; database-level key management is not provided. |
+| **Notification credentials encrypted at rest** | Channel secrets are encrypted with Fernet (v0.6.0+). The encryption key must be protected and backed up by the operator; database-level key management is not provided. See [Encryption key — backup and rotation](#encryption-key--backup-and-rotation). |
 | **Notification retry is simple** | Failed sends are retried briefly and recorded; escalation and provider-specific backoff are not implemented. |
 | **Response preview is truncated** | Only the first 500 bytes of the response body are stored. |
 | **Audit log is append-only by convention** | No row-level immutability; direct database access bypasses the audit trail. |
@@ -289,7 +323,7 @@ Additional hardening steps:
 5. **Keep Docker and the OS updated** — subscribe to security advisories for Ubuntu, Docker, PostgreSQL 16 and Redis.
 6. **Review job URLs** — before activating a job that targets an internal service, verify the URL is intentional to prevent accidental SSRF.
 7. **Do not use real tokens in demos** — never include real API keys, tokens or secrets in job configurations used for screenshots or documentation.
-8. **Protect notification credentials** — use dedicated webhook URLs and SMTP credentials, rotate them periodically and restrict database backup access.
+8. **Protect notification credentials** — use dedicated webhook URLs and SMTP credentials, rotate them periodically and restrict database backup access. Back up `NOTIFICATION_ENCRYPTION_KEY` in a separate, access-controlled location before adding any notification channels; losing it makes all stored channel credentials unrecoverable. See [Encryption key — backup and rotation](#encryption-key--backup-and-rotation) above.
 9. **Create a least-privilege operator account** — avoid day-to-day use of the admin account. Create an `operator` role account for operational tasks and reserve `admin` for user management and audit review.
 10. **Review audit logs periodically** — `GET /api/audit-logs` provides a full action history. Schedule periodic reviews as part of your security posture, especially after privilege changes or incident response.
 

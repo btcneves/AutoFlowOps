@@ -1,6 +1,10 @@
 import uuid
 
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.workspace import Workspace, WorkspaceMembership
+from tests.conftest import _FAKE_OPERATOR, _FAKE_VIEWER
 
 
 async def test_list_workspaces_empty(async_client: AsyncClient) -> None:
@@ -100,6 +104,88 @@ async def test_workspace_not_found_returns_404(async_client: AsyncClient) -> Non
         headers={"X-Workspace-ID": str(uuid.uuid4())},
     )
     assert r.status_code == 404
+
+
+async def test_workspace_access_rejected_without_membership(
+    operator_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    ws = Workspace(name="Restricted", slug="restricted-ws")
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
+    r = await operator_client.get("/api/jobs", headers={"X-Workspace-ID": str(ws.id)})
+    assert r.status_code == 403
+    assert "member" in r.json()["detail"].lower()
+
+
+async def test_workspace_access_granted_with_membership(
+    operator_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    ws = Workspace(name="Open WS", slug="open-ws")
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
+    membership = WorkspaceMembership(
+        workspace_id=ws.id,
+        user_id=_FAKE_OPERATOR.id,
+        role="member",
+    )
+    db_session.add(membership)
+    await db_session.commit()
+
+    r = await operator_client.get("/api/jobs", headers={"X-Workspace-ID": str(ws.id)})
+    assert r.status_code == 200
+
+
+async def test_workspace_access_viewer_rejected_without_membership(
+    viewer_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    ws = Workspace(name="Viewer Restricted", slug="viewer-restricted-ws")
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
+    r = await viewer_client.get("/api/jobs", headers={"X-Workspace-ID": str(ws.id)})
+    assert r.status_code == 403
+
+
+async def test_workspace_access_viewer_granted_with_membership(
+    viewer_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    ws = Workspace(name="Viewer Open", slug="viewer-open-ws")
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
+    membership = WorkspaceMembership(
+        workspace_id=ws.id,
+        user_id=_FAKE_VIEWER.id,
+        role="member",
+    )
+    db_session.add(membership)
+    await db_session.commit()
+
+    r = await viewer_client.get("/api/jobs", headers={"X-Workspace-ID": str(ws.id)})
+    assert r.status_code == 200
+
+
+async def test_workspace_access_admin_bypasses_membership(
+    async_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    ws = Workspace(name="Admin Any", slug="admin-any-ws")
+    db_session.add(ws)
+    await db_session.commit()
+    await db_session.refresh(ws)
+
+    r = await async_client.get("/api/jobs", headers={"X-Workspace-ID": str(ws.id)})
+    assert r.status_code == 200
 
 
 async def test_add_and_remove_member(async_client: AsyncClient) -> None:
