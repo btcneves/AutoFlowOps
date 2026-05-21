@@ -4,6 +4,29 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 
 ---
 
+## Completed (v1.2.0)
+
+| Feature | Details |
+| --- | --- |
+| **Workspace membership enforcement** | Non-admin users receive `403 Forbidden` when supplying an `X-Workspace-ID` they are not a member of; admin role bypasses the check; 5 new tests |
+| **Encryption key documentation** | `NOTIFICATION_ENCRYPTION_KEY` added to `docs/deployment.md` env reference and production checklist; backup and rotation guide added to `docs/security.md` |
+| **Prometheus metrics** | `/metrics` endpoint in Prometheus text format via `prometheus-fastapi-instrumentator`; HTTP histogram auto-instrumented; `autoflowops_job_executions_total` and `autoflowops_alerts_created_total` business counters |
+| **Structured logging** | `structlog` integration with context-variable injection (`request_id`, `user_id`, `workspace_id`); human-readable output in development, JSON in production |
+| **Prometheus + Grafana stack** | `docker-compose.observability.yml` with Prometheus v2.53.0 and Grafana v11.1.0; auto-provisioned datasource and 7-panel dashboard; `obs-up` / `obs-down` / `obs-logs` Makefile targets |
+
+---
+
+## Completed (v1.1.0)
+
+| Feature | Details |
+| --- | --- |
+| **PagerDuty notification channel** | `pagerduty` channel type using Events API v2; `routing_key` encrypted at rest and masked in responses; testable via the channel test endpoint |
+| **OpsGenie notification channel** | `opsgenie` channel type with US/EU region support; `api_key` encrypted and masked; optional `responders` list |
+| **PDF report export** | `GET /api/reports/{id}/download?format=pdf` via `reportlab`; PDF sections cover summary metrics, failed jobs, alerts and recommendations; PDF download button added to the Reports page |
+| **Multi-workspace** | `workspaces` and `workspace_memberships` tables; default workspace auto-created on startup; all domain resources accept `X-Workspace-ID` header for namespace filtering; workspace CRUD and member management APIs; frontend workspace selector in sidebar |
+
+---
+
 ## Completed (v1.0.0)
 
 | Feature | Details |
@@ -176,14 +199,9 @@ These features are planned but not yet in active development.
 
 | Feature | Description |
 | --- | --- |
-| **Additional notification providers** | PagerDuty, OpsGenie and richer provider-specific delivery options |
-| **Real-time logs** | ~~Delivered in v0.8.0~~ |
-| **RBAC** | ~~Delivered in v0.7.0~~ |
-| **Advanced retry policy UI** | ~~Delivered in v1.0.0~~ |
-| **PDF reports** | Export operational reports as PDF in addition to JSON, Markdown and CSV |
-| **Multi-workspace** | Namespace isolation for teams or projects within a single instance |
-| **Docker image registry** | ~~Delivered in v0.9.0~~ |
-| **Audit log** | ~~Delivered in v0.7.0~~ |
+| **Conditional alert rules** | Trigger alerts based on custom thresholds or field conditions beyond job failure |
+| **Notification provider extensions** | Richer provider-specific delivery options (PagerDuty dedup keys, OpsGenie alias, custom payload templates) |
+| **Log aggregation integration** | First-class Loki or Elastic shipping configuration with documented label schema |
 
 ---
 
