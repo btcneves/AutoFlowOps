@@ -130,9 +130,9 @@ The script asks for an image tag (default `latest`), copies `.env.example` to `.
 To run a specific release:
 
 ```bash
-IMAGE_TAG=v1.0.0 bash scripts/setup.sh
+IMAGE_TAG=v1.1.0 bash scripts/setup.sh
 # or
-IMAGE_TAG=v1.0.0 make registry-up
+IMAGE_TAG=v1.1.0 make registry-up
 ```
 
 ### Option B — Build from source

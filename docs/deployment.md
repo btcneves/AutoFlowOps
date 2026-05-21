@@ -42,7 +42,7 @@ The script:
 ### Non-interactive (CI / scripted environments)
 
 ```bash
-IMAGE_TAG=v1.0.0 bash scripts/setup.sh
+IMAGE_TAG=v1.1.0 bash scripts/setup.sh
 ```
 
 ### Makefile shortcuts
@@ -52,7 +52,7 @@ IMAGE_TAG=v1.0.0 bash scripts/setup.sh
 make pull
 
 # Start stack using GHCR images
-IMAGE_TAG=v1.0.0 make registry-up
+IMAGE_TAG=v1.1.0 make registry-up
 
 # Stop
 make registry-down
@@ -64,15 +64,15 @@ make registry-logs
 ### Pinning a specific version
 
 ```bash
-IMAGE_TAG=v1.0.0 docker compose -f docker-compose.registry.yml up -d
+IMAGE_TAG=v1.1.0 docker compose -f docker-compose.registry.yml up -d
 ```
 
 ### Updating to a new version
 
 ```bash
-IMAGE_TAG=v1.0.0 make pull
-IMAGE_TAG=v1.0.0 make registry-down
-IMAGE_TAG=v1.0.0 make registry-up
+IMAGE_TAG=v1.1.0 make pull
+IMAGE_TAG=v1.1.0 make registry-down
+IMAGE_TAG=v1.1.0 make registry-up
 ```
 
 The backend container runs `alembic upgrade head` on startup and applies any pending migrations automatically.
@@ -401,7 +401,7 @@ docker compose -f docker-compose.prod.yml ps
 | WS badge stays "Connecting…" | Backend unavailable or wrong `VITE_API_BASE_URL` | Verify `VITE_API_BASE_URL` is set correctly; check browser console for WS errors |
 | WS events not received | Redis not running | `logs redis`; verify `REDIS_URL`; backend logs show "Redis WS subscriber exited" if disconnected |
 | `docker pull` fails with 403 | GHCR package is private | Go to repository → Packages → make package public, or `docker login ghcr.io` with a token |
-| Stack starts but shows old version | IMAGE_TAG not set or `latest` cached | Run `make pull IMAGE_TAG=v1.0.0` then `make registry-up IMAGE_TAG=v1.0.0` |
+| Stack starts but shows old version | IMAGE_TAG not set or `latest` cached | Run `make pull IMAGE_TAG=v1.1.0` then `make registry-up IMAGE_TAG=v1.1.0` |
 
 ### Exec into a container
 

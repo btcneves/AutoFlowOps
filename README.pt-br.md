@@ -115,9 +115,9 @@ O script solicita a tag da imagem (padrão `latest`), copia `.env.example` para 
 Para rodar uma versão específica:
 
 ```bash
-IMAGE_TAG=v1.0.0 bash scripts/setup.sh
+IMAGE_TAG=v1.1.0 bash scripts/setup.sh
 # ou
-IMAGE_TAG=v1.0.0 make registry-up
+IMAGE_TAG=v1.1.0 make registry-up
 ```
 
 ### Opção B — Build a partir do código-fonte

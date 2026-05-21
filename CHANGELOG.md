@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-20
+
+### Added
+
+- **PagerDuty notification channel** — `pagerduty` channel type using Events API v2; `routing_key` credential encrypted at rest with Fernet and masked in all API responses and delivery records
+- **OpsGenie notification channel** — `opsgenie` channel type with US/EU region support; `api_key` encrypted and masked; optional `responders` list
+- **PDF report export** — `GET /api/reports/{id}/download?format=pdf` generates a PDF using reportlab; sections: title, period, summary metrics, top failed jobs, alerts, recommendations
+- **Multi-workspace** — `workspaces` and `workspace_memberships` tables; `X-Workspace-ID` header filters all domain resources; workspace CRUD API (`GET`, `POST`, `PATCH`, `DELETE /api/workspaces`) and member management (`GET`, `POST`, `DELETE /api/workspaces/{id}/members`); default workspace bootstrapped on startup; default workspace cannot be deleted
+- **Frontend workspace selector** — sidebar dropdown persists active workspace to `localStorage` and injects `X-Workspace-ID` into all API requests; admin-only Workspaces settings page at `/workspaces`
+- **`workspace_id` column** — nullable FK (`SET NULL` on workspace delete) added to jobs, executions, alerts, webhooks, notification channels, notification templates, escalation policies and reports
+- **Alembic migration `b2c3d4e5f6a7`** — creates `workspaces` and `workspace_memberships` tables and adds `workspace_id` to all domain tables; fully reversible
+
 ## [1.0.0] - 2026-05-20
 
 ### Added
