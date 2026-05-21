@@ -1,6 +1,6 @@
 # Roadmap
 
-This document tracks the feature status of AutoFlowOps across completed, planned and future phases.
+This document tracks the feature status of AutoFlowOps across completed and future phases.
 
 ---
 
@@ -9,6 +9,8 @@ This document tracks the feature status of AutoFlowOps across completed, planned
 | Feature | Details |
 | --- | --- |
 | **Conditional alert rules** | Per-job rules trigger alerts from HTTP status thresholds, execution duration thresholds, response body matching and consecutive failure counts; CRUD API, job detail UI and backend/frontend tests |
+| **Log aggregation** | Loki and Elasticsearch log shipping via `LOG_SINK`, `LOKI_URL` and `ELASTICSEARCH_URL`; Promtail agent-based shipping for Docker deployments; label schema documented in `docs/log-aggregation.md` |
+| **Notification provider extensions** | PagerDuty dedup key, OpsGenie alert priority and custom payload templates for provider-specific delivery configuration |
 | **Workspace membership enforcement** | Non-admin users receive `403 Forbidden` when supplying an `X-Workspace-ID` they are not a member of; admin role bypasses the check; 5 new tests |
 | **Encryption key documentation** | `NOTIFICATION_ENCRYPTION_KEY` added to `docs/deployment.md` env reference and production checklist; backup and rotation guide added to `docs/security.md` |
 | **Prometheus metrics** | `/metrics` endpoint in Prometheus text format via `prometheus-fastapi-instrumentator`; HTTP histogram auto-instrumented; `autoflowops_job_executions_total` and `autoflowops_alerts_created_total` business counters |
@@ -194,14 +196,9 @@ These features are implemented, tested and validated in the current MVP.
 
 ---
 
-## Future (planned, not yet scheduled)
+## Future
 
-These features are planned but not yet in active development.
-
-| Feature | Description |
-| --- | --- |
-| **Notification provider extensions** | Richer provider-specific delivery options (PagerDuty dedup keys, OpsGenie alias, custom payload templates) |
-| **Log aggregation integration** | First-class Loki or Elastic shipping configuration with documented label schema |
+No features are currently scheduled. Proposals and contributions are welcome via the issue tracker.
 
 ---
 

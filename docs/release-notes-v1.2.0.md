@@ -61,6 +61,25 @@ Application logs now use `structlog` with context-variable injection.
 - Authenticated requests bind `user_id`; workspace-scoped requests bind `workspace_id`.
 - Fully compatible with existing `logging.getLogger()` usage throughout the codebase.
 
+### Log aggregation
+
+Structured logs can now be shipped directly to Loki or Elasticsearch in addition to printing to stdout.
+
+- `LOG_SINK` selects the active shipping mode: `stdout` (default), `loki`, `elasticsearch`, or a comma-separated combination for dual shipping.
+- `LOKI_URL` and `ELASTICSEARCH_URL` configure target endpoints for direct-push mode.
+- `docker-compose.observability.yml` updated with a Loki + Promtail stack for agent-based log collection from Docker container stdout — the recommended mode for standard self-hosted deployments.
+- All log streams carry a consistent label schema (`app`, `service`, `env`, `level`, `logger`) plus structured metadata fields (`job_id`, `execution_id`, `workspace_id`, `request_id`).
+- Direct-push and agent-based modes can be active simultaneously.
+- Full configuration reference and local setup instructions in `docs/log-aggregation.md`.
+
+### Notification provider extensions
+
+PagerDuty and OpsGenie delivery now supports additional provider-specific fields.
+
+- `dedup_key` on PagerDuty channels for alert deduplication across the Events API v2 lifecycle.
+- `priority` on OpsGenie channels (`P1`–`P5`) for routing to on-call schedules by severity.
+- `payload_template` on both channel types for fully custom JSON payloads when the built-in format does not match provider expectations.
+
 ### Prometheus + Grafana stack
 
 A ready-to-run observability compose stack is provided in `docker-compose.observability.yml`.

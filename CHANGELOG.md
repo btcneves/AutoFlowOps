@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Alert rules API and UI** — CRUD endpoints under `/api/jobs/{job_id}/alert-rules` plus management controls on the job detail page.
 - **Alembic migration `c3d4e5f6a7b8`** — creates the `alert_rules` table with job and workspace foreign keys.
 - **Workspace-scoped alert dispatch** — alert notifications and escalation policies now dispatch only through channels/policies in the alert's workspace.
+- **Log aggregation** — Loki and Elasticsearch log shipping via `LOG_SINK`, `LOKI_URL` and `ELASTICSEARCH_URL` environment variables; Promtail agent-based shipping for Docker deployments added to `docker-compose.observability.yml`; label schema documented in `docs/log-aggregation.md`.
+- **Notification provider extensions** — PagerDuty dedup key (`dedup_key`), OpsGenie alert priority (`priority`) and custom payload template (`payload_template`) for richer provider-specific delivery configuration.
 
 ### Changed
 
