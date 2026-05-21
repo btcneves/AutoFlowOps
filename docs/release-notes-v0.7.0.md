@@ -1,6 +1,6 @@
 # Release Notes — v0.7.0
 
-**Released:** 2026-05-20
+**Release date:** 2026-05-20
 
 ---
 

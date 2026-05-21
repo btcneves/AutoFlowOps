@@ -1,6 +1,6 @@
 # Release Notes — v1.2.0
 
-**Release date:** 2026-05-20
+**Release date:** 2026-05-21
 
 ## Overview
 
