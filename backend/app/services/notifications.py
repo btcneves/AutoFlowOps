@@ -80,19 +80,28 @@ def mask_channel_config(channel_type: str, config: dict[str, Any]) -> dict[str, 
             "use_ssl": bool(config.get("use_ssl", False)),
         }
     if channel_type == "custom_webhook":
-        return {
+        masked: dict[str, Any] = {
             "url": mask_url(str(config.get("url", ""))),
             "method": "POST",
             "headers": mask_sensitive_headers(config.get("headers", {}) or {}),
         }
+        if config.get("payload_template") is not None:
+            masked["payload_template"] = config["payload_template"]
+        return masked
     if channel_type == "pagerduty":
-        return {"routing_key": _MASK}
+        masked = {"routing_key": _MASK}
+        if config.get("dedup_key_template") is not None:
+            masked["dedup_key_template"] = config["dedup_key_template"]
+        return masked
     if channel_type == "opsgenie":
-        return {
+        masked = {
             "api_key": _MASK,
             "region": config.get("region", "us"),
             "responders": config.get("responders"),
         }
+        if config.get("priority") is not None:
+            masked["priority"] = config["priority"]
+        return masked
     return {}
 
 
@@ -397,8 +406,14 @@ async def _send_custom_webhook(config: dict[str, Any], payload: dict[str, str]) 
     url = str(config["url"])
     _check_http_target(url)
     headers = config.get("headers", {}) or {}
-    # Send the base payload keys (without rendered_* internals)
-    send_payload = {k: v for k, v in payload.items() if not k.startswith("rendered_")}
+    payload_template = config.get("payload_template")
+    if payload_template:
+        rendered = payload_template.format_map(payload)
+        send_payload = json.loads(rendered)
+    else:
+        send_payload = {
+            k: v for k, v in payload.items() if not k.startswith("rendered_")
+        }
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.post(url, json=send_payload, headers=headers)
         response.raise_for_status()
@@ -411,7 +426,7 @@ async def _send_pagerduty(config: dict[str, Any], payload: dict[str, str]) -> No
     title = payload.get("rendered_title") or payload["title"]
     body = payload.get("rendered_body") or payload["message"]
     severity_map = {"error": "critical", "warning": "warning", "info": "info"}
-    pd_body = {
+    pd_body: dict[str, Any] = {
         "routing_key": routing_key,
         "event_action": "trigger",
         "payload": {
@@ -426,9 +441,15 @@ async def _send_pagerduty(config: dict[str, Any], payload: dict[str, str]) -> No
             },
         },
     }
+    dedup_key_template = config.get("dedup_key_template")
+    if dedup_key_template:
+        pd_body["dedup_key"] = dedup_key_template.format_map(payload)
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.post(url, json=pd_body)
         response.raise_for_status()
+
+
+_OPSGENIE_PRIORITY_MAP = {"error": "P2", "warning": "P3", "info": "P5"}
 
 
 async def _send_opsgenie(config: dict[str, Any], payload: dict[str, str]) -> None:
@@ -442,11 +463,15 @@ async def _send_opsgenie(config: dict[str, Any], payload: dict[str, str]) -> Non
     _check_http_target(base_url)
     title = payload.get("rendered_title") or payload["title"]
     body = payload.get("rendered_body") or payload["message"]
+    priority = (
+        config.get("priority") or _OPSGENIE_PRIORITY_MAP.get(payload["severity"], "P3")
+    )
     og_body: dict[str, Any] = {
         "message": title,
         "description": body,
         "source": "AutoFlowOps",
         "alias": f"autoflowops-{payload['alert_id']}",
+        "priority": priority,
         "tags": [payload["severity"]],
     }
     responders = config.get("responders")

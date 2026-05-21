@@ -1,8 +1,20 @@
+import json
 import uuid
 from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+_TEMPLATE_VARS = {
+    "alert_id": "00000000-0000-0000-0000-000000000000",
+    "title": "Test alert",
+    "severity": "error",
+    "message": "Test message",
+    "source_type": "job",
+    "source_id": "00000000-0000-0000-0000-000000000000",
+    "rendered_title": "Test alert",
+    "rendered_body": "Test message",
+}
 
 NotificationType = Literal[
     "discord_webhook",
@@ -103,8 +115,33 @@ def _validate_channel_config(channel_type: str, config: dict[str, Any]) -> None:
         headers = config.get("headers", {})
         if headers is not None and not isinstance(headers, dict):
             raise ValueError("headers must be an object")
+        payload_template = config.get("payload_template")
+        if payload_template is not None:
+            if not isinstance(payload_template, str):
+                raise ValueError("payload_template must be a string")
+            try:
+                rendered = payload_template.format_map(_TEMPLATE_VARS)
+                json.loads(rendered)
+            except KeyError as exc:
+                raise ValueError(
+                    f"payload_template uses unknown variable: {exc}"
+                ) from exc
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"payload_template is not valid JSON after substitution: {exc}"
+                ) from exc
     elif channel_type == "pagerduty":
         _require(config, "routing_key")
+        dedup_key_template = config.get("dedup_key_template")
+        if dedup_key_template is not None:
+            if not isinstance(dedup_key_template, str):
+                raise ValueError("dedup_key_template must be a string")
+            try:
+                dedup_key_template.format_map(_TEMPLATE_VARS)
+            except KeyError as exc:
+                raise ValueError(
+                    f"dedup_key_template uses unknown variable: {exc}"
+                ) from exc
     elif channel_type == "opsgenie":
         _require(config, "api_key")
         region = config.get("region")
@@ -113,5 +150,8 @@ def _validate_channel_config(channel_type: str, config: dict[str, Any]) -> None:
         responders = config.get("responders")
         if responders is not None and not isinstance(responders, list):
             raise ValueError("responders must be a list")
+        priority = config.get("priority")
+        if priority is not None and priority not in ("P1", "P2", "P3", "P4", "P5"):
+            raise ValueError("priority must be one of P1, P2, P3, P4, P5")
     else:
         raise ValueError("unsupported notification channel type")
