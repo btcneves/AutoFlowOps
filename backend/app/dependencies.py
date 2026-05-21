@@ -3,6 +3,7 @@
 import uuid
 
 import jwt
+import structlog
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -41,6 +42,7 @@ async def get_current_user(
             detail="User not found or inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    structlog.contextvars.bind_contextvars(user_id=str(user.id))
     return user
 
 
@@ -87,6 +89,7 @@ async def get_active_workspace(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workspace not found",
         )
+    structlog.contextvars.bind_contextvars(workspace_id=str(ws_uuid))
     # Admins can access any workspace; all other roles require explicit membership.
     if _ROLE_LEVEL.get(current_user.role, 0) < 3:
         membership = await session.execute(

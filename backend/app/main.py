@@ -1,10 +1,12 @@
 import asyncio
-import logging
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import structlog
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 
 import app.models  # noqa: F401 — ensure all models register with Base.metadata
@@ -15,6 +17,7 @@ from app.api.ws import router as ws_router
 from app.config import settings
 from app.database import async_session_factory, engine
 from app.models.base import Base
+from app.observability import configure_logging
 from app.services.auth import bootstrap_admin
 from app.services.scheduler import (
     get_scheduler,
@@ -23,8 +26,8 @@ from app.services.scheduler import (
 )
 from app.services.workspace import get_or_create_default_workspace
 
-logging.basicConfig(level=settings.log_level.upper())
-logger = logging.getLogger(__name__)
+configure_logging(log_level=settings.log_level, env=settings.app_env)
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
@@ -98,6 +101,19 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next: object) -> Response:
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(request_id=str(uuid.uuid4()))
+    response: Response = await call_next(request)  # type: ignore[operator]
+    return response
+
+
+Instrumentator(excluded_handlers=["/metrics"]).instrument(app).expose(
+    app, endpoint="/metrics", include_in_schema=False
 )
 
 app.include_router(router)

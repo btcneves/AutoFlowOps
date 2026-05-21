@@ -13,6 +13,7 @@ from app.config import settings
 from app.models.alert import Alert
 from app.models.execution import Execution
 from app.models.job import Job
+from app.observability import alerts_created_total, job_executions_total
 from app.services.event_publisher import publish_event_async
 from app.services.masking import mask_sensitive_body, mask_sensitive_headers
 from app.services.notifications import dispatch_alert_notifications
@@ -142,6 +143,10 @@ async def run_job_http(
     job.last_run_at = datetime.now(UTC)
     session.add(job)
 
+    job_executions_total.labels(
+        status=execution.status, trigger_type=trigger_type
+    ).inc()
+
     should_alert = (
         create_alert
         and job.alert_on_failure
@@ -152,6 +157,7 @@ async def run_job_http(
         alert = create_failure_alert(job, execution)
         session.add(alert)
         await session.flush()
+        alerts_created_total.labels(severity=alert.severity).inc()
 
     await session.commit()
 

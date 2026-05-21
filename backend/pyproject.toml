@@ -23,6 +23,8 @@ dependencies = [
     "redis>=5.0",
     "cryptography>=42.0",
     "reportlab>=4.0",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "structlog>=24.0",
 ]
 
 [project.optional-dependencies]
