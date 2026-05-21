@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.alert import Alert
 from app.models.notification import NotificationDelivery
+from app.models.workspace import Workspace
 from app.services.notifications import (
     _send_custom_webhook,
     _send_opsgenie,
@@ -245,6 +246,48 @@ async def test_dispatch_alert_notifications_records_success(
     deliveries = await dispatch_alert_notifications(db_session, alert)
     assert len(deliveries) == 1
     assert deliveries[0].status == "success"
+
+
+async def test_dispatch_alert_notifications_respects_workspace(
+    db_session: AsyncSession,
+    async_client: AsyncClient,
+    monkeypatch,
+) -> None:
+    sent: list[str] = []
+
+    async def fake_send(channel_type, config, payload):
+        sent.append(payload["alert_id"])
+
+    monkeypatch.setattr("app.services.notifications._send_channel", fake_send)
+    ws_a = Workspace(name="Notify A", slug="notify-a")
+    ws_b = Workspace(name="Notify B", slug="notify-b")
+    db_session.add_all([ws_a, ws_b])
+    await db_session.commit()
+    await db_session.refresh(ws_a)
+    await db_session.refresh(ws_b)
+
+    await async_client.post(
+        "/api/notification-channels",
+        json={
+            "name": "Workspace A channel",
+            "type": "discord_webhook",
+            "config": {"webhook_url": "https://discord.com/api/webhooks/123/secret"},
+        },
+        headers={"X-Workspace-ID": str(ws_a.id)},
+    )
+    alert = Alert(
+        title="Workspace B alert",
+        message="boom",
+        severity="error",
+        workspace_id=ws_b.id,
+    )
+    db_session.add(alert)
+    await db_session.commit()
+    await db_session.refresh(alert)
+
+    deliveries = await dispatch_alert_notifications(db_session, alert)
+    assert deliveries == []
+    assert sent == []
 
 
 async def test_dispatch_alert_notifications_records_masked_failure(

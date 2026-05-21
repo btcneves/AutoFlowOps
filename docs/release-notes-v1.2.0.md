@@ -4,13 +4,24 @@
 
 ## Overview
 
-v1.2.0 introduces a security fix that enforces workspace membership on all workspace-scoped requests, expands the deployment documentation for the notification encryption key, and ships a production-ready observability stack (Prometheus metrics, structured JSON logging, and an optional Prometheus + Grafana compose stack with a pre-built dashboard).
+v1.2.0 introduces conditional alert rules for per-job operational thresholds, hardens workspace isolation on resource-specific endpoints and notification dispatch, expands the deployment documentation for the notification encryption key, and ships a production-ready observability stack (Prometheus metrics, structured JSON logging, and an optional Prometheus + Grafana compose stack with a pre-built dashboard).
 
 All changes are backward-compatible. Deployments that do not use the `X-Workspace-ID` header are unaffected by the membership enforcement.
 
 ---
 
 ## What's New
+
+### Conditional alert rules
+
+Jobs can now define enabled/disabled alert rules that create internal alerts from:
+
+- HTTP status thresholds (`http_status_gte`)
+- Execution duration thresholds (`duration_ms_gte`)
+- Response body text matches (`response_body_contains`)
+- Consecutive failure counts (`consecutive_failures_gte`)
+
+Rules are managed through `GET`, `POST`, `PATCH` and `DELETE /api/jobs/{job_id}/alert-rules`, and the job detail page includes a rules section for operators and admins. The Celery worker evaluates these rules after final retry handling so queued/scheduled jobs behave the same as inline executions.
 
 ### Workspace membership enforcement (security)
 
@@ -64,7 +75,12 @@ A ready-to-run observability compose stack is provided in `docker-compose.observ
 
 ## Upgrade Steps
 
-No database migration is required for this release.
+Run the database migration included in this release. It creates the `alert_rules` table.
+
+```bash
+cd backend
+alembic upgrade head
+```
 
 ### Pull from registry
 
@@ -106,9 +122,9 @@ All items from previous releases apply. Additional considerations for v1.2.0:
 ## Validation Plan
 
 - Backend lint: `cd backend && ruff check .`
-- Backend tests: `cd backend && PYTHONPATH=. pytest` (239 tests)
+- Backend tests: `cd backend && PYTHONPATH=. pytest` (260 tests)
 - Frontend lint: `cd frontend && npm run lint`
-- Frontend tests: `cd frontend && npm test`
+- Frontend tests: `cd frontend && npm test` (76 tests)
 - Frontend build: `cd frontend && npm run build`
 - Full local lint/test: `make lint && make test`
 - Local Docker build: `docker compose build`

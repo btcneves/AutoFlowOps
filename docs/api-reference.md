@@ -44,7 +44,7 @@ Response `200 OK`:
 
 ```json
 {
-  "version": "1.0.0",
+  "version": "1.2.0",
   "app": "AutoFlowOps"
 }
 ```
@@ -201,6 +201,80 @@ Response `202 Accepted`:
 ```
 
 The worker updates the same execution to `running`, then to `success`, `failure` or `timeout`. If retries are configured and an attempt fails, the execution is marked `retrying` until the next attempt starts. Alerts are created only after the final failed or timed-out attempt.
+
+---
+
+## Alert Rules
+
+Alert rules are scoped to a job and are evaluated after each execution completes. They can create alerts from custom operational conditions beyond the default "job failed" alert.
+
+### GET /api/jobs/{job_id}/alert-rules
+
+List alert rules for a job.
+
+```bash
+curl http://localhost:8000/api/jobs/550e8400-e29b-41d4-a716-446655440000/alert-rules
+```
+
+Response `200 OK` — array of rule objects.
+
+### POST /api/jobs/{job_id}/alert-rules
+
+Create an alert rule. Requires operator or admin access.
+
+```bash
+curl -X POST http://localhost:8000/api/jobs/550e8400-e29b-41d4-a716-446655440000/alert-rules \
+  -H "Content-Type: application/json" \
+  -d '{
+    "condition_type": "http_status_gte",
+    "condition_value": "500",
+    "severity": "error",
+    "message": "Backend returned an error"
+  }'
+```
+
+Supported `condition_type` values:
+
+| Value | Meaning |
+| --- | --- |
+| `http_status_gte` | Response status code is greater than or equal to an HTTP status from `100` to `599` |
+| `duration_ms_gte` | Execution duration is greater than or equal to a positive millisecond threshold |
+| `response_body_contains` | Response body preview contains the configured text |
+| `consecutive_failures_gte` | Most recent completed executions contain at least this many consecutive failures/timeouts |
+
+Request body fields:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `condition_type` | string | Yes | One of the supported condition types |
+| `condition_value` | string | Yes | Threshold or text pattern |
+| `severity` | string | No | `error`, `warning` or `info`; default: `warning` |
+| `message` | string | No | Optional alert title override |
+| `is_enabled` | boolean | No | Default: `true` |
+
+Response `201 Created` — the created rule object.
+
+### PATCH /api/jobs/{job_id}/alert-rules/{rule_id}
+
+Update an alert rule. Requires operator or admin access.
+
+```bash
+curl -X PATCH http://localhost:8000/api/jobs/550e8400-e29b-41d4-a716-446655440000/alert-rules/770e8400-e29b-41d4-a716-446655440002 \
+  -H "Content-Type: application/json" \
+  -d '{"is_enabled": false}'
+```
+
+Response `200 OK` — the updated rule object.
+
+### DELETE /api/jobs/{job_id}/alert-rules/{rule_id}
+
+Delete an alert rule. Requires operator or admin access.
+
+```bash
+curl -X DELETE http://localhost:8000/api/jobs/550e8400-e29b-41d4-a716-446655440000/alert-rules/770e8400-e29b-41d4-a716-446655440002
+```
+
+Response `204 No Content`.
 
 ---
 

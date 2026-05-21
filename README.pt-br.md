@@ -30,6 +30,7 @@ O AutoFlowOps centraliza essas rotinas em uma única plataforma self-hosted:
 - **Execuções** — histórico persistente com status, tempos, prévia de respostas e segredos mascarados
 - **Webhooks** — receba eventos externos, armazene payloads com validação por token, reprocesse eventos
 - **Alertas** — alertas automáticos em falhas de jobs e webhooks, com fluxos de reconhecimento e resolução
+- **Regras condicionais de alerta** — dispare alertas por status HTTP, duração, texto da resposta ou limites de falhas consecutivas
 - **Notificações** — envie alertas críticos para Discord, Telegram, SMTP e webhooks customizados
 - **Políticas de escalonamento** — escalonamento em múltiplos passos com delays configuráveis por etapa
 - **Permissões** — roles admin, operator e viewer aplicados server-side; trilha de auditoria de todas as ações sensíveis
@@ -48,6 +49,7 @@ O AutoFlowOps centraliza essas rotinas em uma única plataforma self-hosted:
 - Receptor de webhooks com validação por token secreto (SHA-256)
 - Histórico de execuções com segredos mascarados e prévia de respostas
 - Sistema interno de alertas para execuções com falha
+- Regras condicionais de alerta por job para limites operacionais customizados
 - Canais de notificação externos para alertas críticos (Discord, Telegram, SMTP, webhooks customizados)
 - Templates de notificação e políticas de escalonamento em múltiplos passos
 - Controle de acesso por roles (admin / operator / viewer) aplicado server-side
@@ -115,9 +117,9 @@ O script solicita a tag da imagem (padrão `latest`), copia `.env.example` para 
 Para rodar uma versão específica:
 
 ```bash
-IMAGE_TAG=v1.1.0 bash scripts/setup.sh
+IMAGE_TAG=v1.2.0 bash scripts/setup.sh
 # ou
-IMAGE_TAG=v1.1.0 make registry-up
+IMAGE_TAG=v1.2.0 make registry-up
 ```
 
 ### Opção B — Build a partir do código-fonte
@@ -217,8 +219,8 @@ make test
 
 | Suite | Testes | Status |
 | --- | --- | --- |
-| Backend | 216 | Passando |
-| Frontend | 75 | Passando |
+| Backend | 260 | Passando |
+| Frontend | 76 | Passando |
 
 ---
 

@@ -107,7 +107,51 @@
     "colDuration": "Duração",
     "colHttp": "HTTP",
     "colError": "Erro",
-    "details": "Detalhes"
+    "details": "Detalhes",
+    "alertRules": "Regras de Alerta",
+    "alertRulesSubtitle": "Dispare alertas por status HTTP, duração, texto da resposta ou falhas repetidas.",
+    "alertRuleConditionLabel": "Condição",
+    "alertRuleValueLabel": "Valor",
+    "alertRuleSeverityLabel": "Severidade",
+    "alertRuleMessageLabel": "Mensagem",
+    "alertRuleMessagePlaceholder": "Título opcional do alerta",
+    "alertRuleValueRequired": "O valor da condição é obrigatório.",
+    "alertRuleValueInteger": "Use um número inteiro positivo para esta condição.",
+    "alertRuleValueHttpStatus": "O status HTTP deve estar entre 100 e 599.",
+    "alertRuleSaving": "Salvando…",
+    "alertRuleCreate": "Adicionar regra",
+    "alertRulesLoading": "Carregando regras de alerta…",
+    "alertRulesError": "Não foi possível carregar as regras de alerta.",
+    "alertRulesEmpty": "Nenhuma regra de alerta configurada.",
+    "alertRuleColCondition": "Condição",
+    "alertRuleColValue": "Valor",
+    "alertRuleColSeverity": "Severidade",
+    "alertRuleColMessage": "Mensagem",
+    "alertRuleColStatus": "Status",
+    "alertRuleColActions": "Ações",
+    "alertRuleEnabled": "Ativa",
+    "alertRuleDisabled": "Inativa",
+    "alertRuleDelete": "Excluir",
+    "alertRuleConfirmDelete": "Excluir esta regra de alerta? Esta ação não pode ser desfeita.",
+    "alertRuleToggleLabel": "Alternar regra de alerta {{message}}",
+    "alertRuleDeleteLabel": "Excluir regra de alerta {{message}}",
+    "alertRuleCondition": {
+      "http_status_gte": "Status HTTP >=",
+      "duration_ms_gte": "Duração >=",
+      "response_body_contains": "Resposta contém",
+      "consecutive_failures_gte": "Falhas consecutivas >="
+    },
+    "alertRulePlaceholder": {
+      "http_status_gte": "500",
+      "duration_ms_gte": "2000",
+      "response_body_contains": "erro",
+      "consecutive_failures_gte": "3"
+    },
+    "alertRuleSeverity": {
+      "error": "Erro",
+      "warning": "Aviso",
+      "info": "Info"
+    }
   },
   "jobForm": {
     "titleEdit": "Editar Job",

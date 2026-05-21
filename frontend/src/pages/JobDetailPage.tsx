@@ -1,8 +1,21 @@
+import { FormEvent, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useDeleteJob, useJob, useRunJob, useUpdateJob } from '../hooks/useJobs'
 import { useExecutions } from '../hooks/useExecutions'
-import type { ExecutionRead } from '../types'
+import {
+  useAlertRules,
+  useCreateAlertRule,
+  useDeleteAlertRule,
+  useUpdateAlertRule,
+} from '../hooks/useAlertRules'
+import type {
+  AlertRuleConditionType,
+  AlertRuleRead,
+  AlertRuleSeverity,
+  ExecutionRead,
+} from '../types'
+import { useAuth } from '../contexts/AuthContext'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -52,6 +65,253 @@ function ExecutionRow({ exc }: { exc: ExecutionRead }) {
         </Link>
       </td>
     </tr>
+  )
+}
+
+const CONDITION_TYPES: AlertRuleConditionType[] = [
+  'http_status_gte',
+  'duration_ms_gte',
+  'response_body_contains',
+  'consecutive_failures_gte',
+]
+
+const SEVERITIES: AlertRuleSeverity[] = ['warning', 'error', 'info']
+
+function AlertRuleRow({
+  jobId,
+  rule,
+  canManage,
+}: {
+  jobId: string
+  rule: AlertRuleRead
+  canManage: boolean
+}) {
+  const { t } = useTranslation()
+  const update = useUpdateAlertRule(jobId)
+  const remove = useDeleteAlertRule(jobId)
+
+  function handleDelete() {
+    if (!confirm(t('jobDetail.alertRuleConfirmDelete'))) return
+    remove.mutate(rule.id)
+  }
+
+  return (
+    <tr className="border-t border-gray-100">
+      <td className="py-3 pl-4 pr-4 text-xs text-gray-700">
+        {t(`jobDetail.alertRuleCondition.${rule.condition_type}`)}
+      </td>
+      <td className="py-3 pr-4 font-mono text-xs text-gray-600">{rule.condition_value}</td>
+      <td className="py-3 pr-4 text-xs text-gray-600">
+        {t(`jobDetail.alertRuleSeverity.${rule.severity}`)}
+      </td>
+      <td className="py-3 pr-4 text-xs text-gray-500">
+        {rule.message || '—'}
+      </td>
+      <td className="py-3 pr-4 text-xs">
+        {canManage ? (
+          <button
+            aria-label={t('jobDetail.alertRuleToggleLabel', {
+              message: rule.message || rule.condition_value,
+            })}
+            onClick={() =>
+              update.mutate({
+                id: rule.id,
+                payload: { is_enabled: !rule.is_enabled },
+              })
+            }
+            disabled={update.isPending}
+            className={`rounded px-2 py-1 text-xs ${
+              rule.is_enabled
+                ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            } disabled:opacity-50`}
+          >
+            {rule.is_enabled ? t('jobDetail.alertRuleEnabled') : t('jobDetail.alertRuleDisabled')}
+          </button>
+        ) : (
+          <span className="text-xs text-gray-500">
+            {rule.is_enabled ? t('jobDetail.alertRuleEnabled') : t('jobDetail.alertRuleDisabled')}
+          </span>
+        )}
+      </td>
+      <td className="py-3 pr-4 text-right">
+        {canManage ? (
+          <button
+            aria-label={t('jobDetail.alertRuleDeleteLabel', {
+              message: rule.message || rule.condition_value,
+            })}
+            onClick={handleDelete}
+            disabled={remove.isPending}
+            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            {t('jobDetail.alertRuleDelete')}
+          </button>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )}
+      </td>
+    </tr>
+  )
+}
+
+function AlertRulesSection({ jobId }: { jobId: string }) {
+  const { t } = useTranslation()
+  const { isOperator } = useAuth()
+  const { data: rules, isLoading, isError } = useAlertRules(jobId)
+  const create = useCreateAlertRule(jobId)
+  const [conditionType, setConditionType] = useState<AlertRuleConditionType>('http_status_gte')
+  const [conditionValue, setConditionValue] = useState('')
+  const [severity, setSeverity] = useState<AlertRuleSeverity>('warning')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    setError(null)
+    if (!conditionValue.trim()) {
+      setError(t('jobDetail.alertRuleValueRequired'))
+      return
+    }
+    if (
+      conditionType !== 'response_body_contains' &&
+      (!/^\d+$/.test(conditionValue.trim()) || Number(conditionValue.trim()) < 1)
+    ) {
+      setError(t('jobDetail.alertRuleValueInteger'))
+      return
+    }
+    if (
+      conditionType === 'http_status_gte' &&
+      (Number(conditionValue.trim()) < 100 || Number(conditionValue.trim()) > 599)
+    ) {
+      setError(t('jobDetail.alertRuleValueHttpStatus'))
+      return
+    }
+    const payload = {
+      condition_type: conditionType,
+      condition_value: conditionValue.trim(),
+      severity,
+      message: message.trim() || null,
+      is_enabled: true,
+    }
+    void create
+      .mutateAsync(payload)
+      .then(() => {
+        setConditionValue('')
+        setMessage('')
+      })
+      .catch((err: Error) => setError(err.message))
+  }
+
+  return (
+    <div className="mb-6">
+      <div className="mb-3">
+        <h2 className="text-lg font-semibold text-gray-900">{t('jobDetail.alertRules')}</h2>
+        <p className="mt-1 text-sm text-gray-500">{t('jobDetail.alertRulesSubtitle')}</p>
+      </div>
+
+      {isOperator && (
+        <form
+          onSubmit={handleSubmit}
+          className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+        >
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="text-xs font-medium text-gray-600">
+              {t('jobDetail.alertRuleConditionLabel')}
+              <select
+                value={conditionType}
+                onChange={(e) => setConditionType(e.target.value as AlertRuleConditionType)}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              >
+                {CONDITION_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {t(`jobDetail.alertRuleCondition.${type}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-medium text-gray-600">
+              {t('jobDetail.alertRuleValueLabel')}
+              <input
+                value={conditionValue}
+                onChange={(e) => setConditionValue(e.target.value)}
+                placeholder={t(`jobDetail.alertRulePlaceholder.${conditionType}`)}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </label>
+            <label className="text-xs font-medium text-gray-600">
+              {t('jobDetail.alertRuleSeverityLabel')}
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value as AlertRuleSeverity)}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              >
+                {SEVERITIES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`jobDetail.alertRuleSeverity.${value}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs font-medium text-gray-600">
+              {t('jobDetail.alertRuleMessageLabel')}
+              <input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t('jobDetail.alertRuleMessagePlaceholder')}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              />
+            </label>
+          </div>
+          {error && (
+            <p role="alert" className="mt-3 text-xs text-red-600">
+              {error}
+            </p>
+          )}
+          <button
+            disabled={create.isPending}
+            className="mt-4 rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {create.isPending ? t('jobDetail.alertRuleSaving') : t('jobDetail.alertRuleCreate')}
+          </button>
+        </form>
+      )}
+
+      {isLoading && <p className="text-sm text-gray-500">{t('jobDetail.alertRulesLoading')}</p>}
+      {isError && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {t('jobDetail.alertRulesError')}
+        </div>
+      )}
+      {!isLoading && !isError && rules && rules.length === 0 && (
+        <p className="text-sm text-gray-500">{t('jobDetail.alertRulesEmpty')}</p>
+      )}
+      {!isLoading && !isError && rules && rules.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+          <table className="min-w-[760px] w-full text-left">
+            <thead>
+              <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="py-2 pl-4 pr-4">{t('jobDetail.alertRuleColCondition')}</th>
+                <th className="py-2 pr-4">{t('jobDetail.alertRuleColValue')}</th>
+                <th className="py-2 pr-4">{t('jobDetail.alertRuleColSeverity')}</th>
+                <th className="py-2 pr-4">{t('jobDetail.alertRuleColMessage')}</th>
+                <th className="py-2 pr-4">{t('jobDetail.alertRuleColStatus')}</th>
+                <th className="py-2 pr-4 text-right">{t('jobDetail.alertRuleColActions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rules.map((rule) => (
+                <AlertRuleRow
+                  key={rule.id}
+                  jobId={jobId}
+                  rule={rule}
+                  canManage={isOperator}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -165,6 +425,8 @@ export function JobDetailPage() {
           <p className="mt-1 text-sm text-gray-900">{formatDate(job.next_run_at)}</p>
         </div>
       </div>
+
+      <AlertRulesSection jobId={job.id} />
 
       {/* Recent executions */}
       <div>

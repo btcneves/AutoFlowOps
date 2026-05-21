@@ -8,6 +8,7 @@ Este documento acompanha o status das funcionalidades do AutoFlowOps entre as fa
 
 | Funcionalidade | Detalhes |
 | --- | --- |
+| **Regras condicionais de alerta** | Regras por job disparam alertas por limites de status HTTP, duração da execução, texto na resposta e contagem de falhas consecutivas; API CRUD, UI no detalhe do job e testes backend/frontend |
 | **Validação de membership em workspace** | Usuários não-admin recebem `403 Forbidden` ao usar um `X-Workspace-ID` do qual não são membros; role admin ignora a verificação; 5 novos testes |
 | **Documentação da chave de criptografia** | `NOTIFICATION_ENCRYPTION_KEY` adicionada à tabela de referência de variáveis de ambiente e checklist de produção em `docs/deployment.md`; guia de backup e rotação adicionado em `docs/security.md` |
 | **Métricas Prometheus** | Endpoint `/metrics` em formato Prometheus via `prometheus-fastapi-instrumentator`; histograma HTTP auto-instrumentado; contadores de negócio `autoflowops_job_executions_total` e `autoflowops_alerts_created_total` |

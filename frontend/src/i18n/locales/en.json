@@ -107,7 +107,51 @@
     "colDuration": "Duration",
     "colHttp": "HTTP",
     "colError": "Error",
-    "details": "Details"
+    "details": "Details",
+    "alertRules": "Alert Rules",
+    "alertRulesSubtitle": "Trigger alerts from HTTP status, runtime, response text or repeated failures.",
+    "alertRuleConditionLabel": "Condition",
+    "alertRuleValueLabel": "Value",
+    "alertRuleSeverityLabel": "Severity",
+    "alertRuleMessageLabel": "Message",
+    "alertRuleMessagePlaceholder": "Optional alert title",
+    "alertRuleValueRequired": "Condition value is required.",
+    "alertRuleValueInteger": "Use a positive integer for this condition.",
+    "alertRuleValueHttpStatus": "HTTP status must be between 100 and 599.",
+    "alertRuleSaving": "Saving…",
+    "alertRuleCreate": "Add rule",
+    "alertRulesLoading": "Loading alert rules…",
+    "alertRulesError": "Could not load alert rules.",
+    "alertRulesEmpty": "No alert rules configured.",
+    "alertRuleColCondition": "Condition",
+    "alertRuleColValue": "Value",
+    "alertRuleColSeverity": "Severity",
+    "alertRuleColMessage": "Message",
+    "alertRuleColStatus": "Status",
+    "alertRuleColActions": "Actions",
+    "alertRuleEnabled": "Enabled",
+    "alertRuleDisabled": "Disabled",
+    "alertRuleDelete": "Delete",
+    "alertRuleConfirmDelete": "Delete this alert rule? This cannot be undone.",
+    "alertRuleToggleLabel": "Toggle alert rule {{message}}",
+    "alertRuleDeleteLabel": "Delete alert rule {{message}}",
+    "alertRuleCondition": {
+      "http_status_gte": "HTTP status >=",
+      "duration_ms_gte": "Duration >=",
+      "response_body_contains": "Response contains",
+      "consecutive_failures_gte": "Consecutive failures >="
+    },
+    "alertRulePlaceholder": {
+      "http_status_gte": "500",
+      "duration_ms_gte": "2000",
+      "response_body_contains": "error",
+      "consecutive_failures_gte": "3"
+    },
+    "alertRuleSeverity": {
+      "error": "Error",
+      "warning": "Warning",
+      "info": "Info"
+    }
   },
   "jobForm": {
     "titleEdit": "Edit Job",

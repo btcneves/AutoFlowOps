@@ -41,10 +41,12 @@ async def get_execution(
     execution_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> ExecutionRead:
-    result = await session.execute(
-        select(Execution).where(Execution.id == execution_id)
-    )
+    stmt = select(Execution).where(Execution.id == execution_id)
+    if workspace is not None:
+        stmt = stmt.where(Execution.workspace_id == workspace.id)
+    result = await session.execute(stmt)
     execution = result.scalar_one_or_none()
     if execution is None:
         raise HTTPException(status_code=404, detail="Execution not found")

@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-21
+
+### Added
+
+- **Conditional alert rules** — per-job rules can create alerts from HTTP status thresholds, execution duration thresholds, response body matches and consecutive failure counts.
+- **Alert rules API and UI** — CRUD endpoints under `/api/jobs/{job_id}/alert-rules` plus management controls on the job detail page.
+- **Alembic migration `c3d4e5f6a7b8`** — creates the `alert_rules` table with job and workspace foreign keys.
+- **Workspace-scoped alert dispatch** — alert notifications and escalation policies now dispatch only through channels/policies in the alert's workspace.
+
+### Changed
+
+- **Workspace isolation hardening** — job detail/update/delete/run, execution detail and alert rule endpoints now honor `X-Workspace-ID` resource scope.
+- **Worker parity** — queued Celery executions now evaluate conditional alert rules after final retry handling.
+- **Version alignment** — backend package metadata, `/api/version`, frontend package metadata and lockfile report `1.2.0`.
+
 ## [1.1.0] - 2026-05-20
 
 ### Added

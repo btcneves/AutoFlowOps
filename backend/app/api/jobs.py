@@ -112,8 +112,9 @@ async def get_job(
     job_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> JobRead:
-    job = await _get_or_404(session, job_id)
+    job = await _get_or_404(session, job_id, workspace)
     return _job_to_read(job)
 
 
@@ -124,8 +125,9 @@ async def update_job(
     request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_operator),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> JobRead:
-    job = await _get_or_404(session, job_id)
+    job = await _get_or_404(session, job_id, workspace)
 
     updates = payload.model_dump(exclude_unset=True)
     if "headers" in updates:
@@ -165,8 +167,9 @@ async def delete_job(
     request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_operator),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> None:
-    job = await _get_or_404(session, job_id)
+    job = await _get_or_404(session, job_id, workspace)
     await log_action(
         session,
         action="jobs.delete",
@@ -188,8 +191,9 @@ async def run_job(
     request: Request,
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_operator),
+    workspace: Workspace | None = Depends(get_active_workspace),
 ) -> ExecutionRead:
-    job = await _get_or_404(session, job_id)
+    job = await _get_or_404(session, job_id, workspace)
     if job.type != "http":
         raise HTTPException(status_code=501, detail="Only HTTP jobs are supported")
     execution = await enqueue_job_execution(job, session, trigger_type="manual")
@@ -207,9 +211,13 @@ async def run_job(
     return ExecutionRead.model_validate(execution)
 
 
-async def _get_or_404(session: AsyncSession, job_id: uuid.UUID) -> Job:
+async def _get_or_404(
+    session: AsyncSession,
+    job_id: uuid.UUID,
+    workspace: Workspace | None = None,
+) -> Job:
     result = await session.execute(select(Job).where(Job.id == job_id))
     job = result.scalar_one_or_none()
-    if job is None:
+    if job is None or (workspace is not None and job.workspace_id != workspace.id):
         raise HTTPException(status_code=404, detail="Job not found")
     return job
