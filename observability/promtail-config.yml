@@ -1,0 +1,67 @@
+# Promtail configuration for AutoFlowOps.
+#
+# Label schema applied to every log stream:
+#   app      = "autoflowops"           (constant)
+#   service  = compose service name    (backend | worker | frontend | db | redis)
+#   env      = APP_ENV value           (development | production)
+#   level    = structlog level field   (debug | info | warning | error | critical)
+#   logger   = structlog logger name   (module path, e.g. app.services.notifications)
+#
+# Structured fields extracted from JSON log lines and available for LogQL
+# label-filter / line-filter queries (but NOT promoted to stream labels to
+# keep cardinality low):
+#   request_id, workspace_id, user_id
+#
+# These fields are emitted by structlog contextvars middleware and are
+# available on every log line that was produced inside a request context.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: autoflowops-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=autoflowops"]
+    relabel_configs:
+      # Promote compose service name → service label
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      # Constant app label
+      - replacement: autoflowops
+        target_label: app
+      # Carry the APP_ENV value if it was injected as a container env label;
+      # falls back to an empty string if absent — set explicitly in compose.
+      - source_labels: ["__meta_docker_container_env_APP_ENV"]
+        target_label: env
+    pipeline_stages:
+      # Extract structured fields from the JSON produced by structlog in
+      # production mode (APP_ENV=production). In development mode the log
+      # lines are human-readable text; the json stage is a no-op for those.
+      - json:
+          expressions:
+            level: level
+            logger: logger
+            request_id: request_id
+            workspace_id: workspace_id
+            user_id: user_id
+      # Promote level + logger to Loki stream labels (low cardinality).
+      # request_id / workspace_id / user_id are kept as structured metadata
+      # only — they are high-cardinality and must not become stream labels.
+      - labels:
+          level:
+          logger:
+      - structured_metadata:
+          request_id:
+          workspace_id:
+          user_id:

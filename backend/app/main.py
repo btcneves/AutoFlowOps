@@ -17,7 +17,7 @@ from app.api.ws import router as ws_router
 from app.config import settings
 from app.database import async_session_factory, engine
 from app.models.base import Base
-from app.observability import configure_logging
+from app.observability import configure_log_shippers, configure_logging
 from app.services.auth import bootstrap_admin
 from app.services.scheduler import (
     get_scheduler,
@@ -27,6 +27,15 @@ from app.services.scheduler import (
 from app.services.workspace import get_or_create_default_workspace
 
 configure_logging(log_level=settings.log_level, env=settings.app_env)
+configure_log_shippers(
+    loki_url=settings.loki_url,
+    elasticsearch_url=settings.elasticsearch_url,
+    labels={
+        "app": "autoflowops",
+        "service": settings.log_service_name,
+        "env": settings.app_env,
+    },
+)
 logger = structlog.get_logger(__name__)
 
 

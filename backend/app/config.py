@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     # If absent, derived from app_secret_key (dev/test only — not production-safe).
     notification_encryption_key: str = ""
 
+    # Log aggregation (leave blank to disable each shipper).
+    # Loki: set to the base URL, e.g. http://loki:3100
+    # Elasticsearch: set to the base URL, e.g. http://es:9200
+    loki_url: str = ""
+    elasticsearch_url: str = ""
+    # Identifies the service in Loki stream labels; override to "worker"
+    # in the Celery worker container.
+    log_service_name: str = "backend"
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
