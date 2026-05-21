@@ -286,6 +286,7 @@ make prod-validate  # Validate docker-compose.prod.yml and Caddyfile syntax
 | `FRONTEND_URL` | `http://localhost:3000` | Yes | Allowed CORS origin |
 | `JWT_SECRET_KEY` | `change-me` | Yes | Replace before any deployment |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | No | Token lifetime in minutes |
+| `NOTIFICATION_ENCRYPTION_KEY` | *(derived)* | Yes | Fernet key for notification channel credentials. Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. If absent, a key is derived from `APP_SECRET_KEY` (not production-safe). Back up this value — losing it makes stored notification credentials unrecoverable. |
 | `ADMIN_EMAIL` | `admin@autoflowops.local` | Yes | Bootstrap admin email |
 | `ADMIN_PASSWORD` | `changeme` | Yes | Bootstrap admin password |
 | `ADMIN_NAME` | `Admin` | No | Bootstrap admin display name |
@@ -421,6 +422,7 @@ Run through this list before exposing the instance to users.
 - [ ] `POSTGRES_PASSWORD` set to a strong random value
 - [ ] `APP_SECRET_KEY` set to a 64-character random hex string
 - [ ] `JWT_SECRET_KEY` set to a different 64-character random hex string
+- [ ] `NOTIFICATION_ENCRYPTION_KEY` set to a Fernet key and **backed up securely** (losing it makes stored notification credentials unrecoverable)
 - [ ] `ADMIN_EMAIL` and `ADMIN_PASSWORD` set to real values (not defaults)
 - [ ] `FRONTEND_URL` set to the public HTTPS domain
 - [ ] `DATABASE_URL` credentials match `POSTGRES_USER` / `POSTGRES_PASSWORD`
