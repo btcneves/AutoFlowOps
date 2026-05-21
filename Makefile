@@ -6,7 +6,8 @@ IMAGE_TAG ?= latest
 
 .PHONY: dev up down logs worker-logs test lint format setup seed \
         prod-up prod-down prod-logs prod-validate \
-        pull registry-up registry-down registry-logs
+        pull registry-up registry-down registry-logs \
+        obs-up obs-down obs-logs
 
 setup:
 	@test -f .env || cp .env.example .env && echo ".env created from .env.example"
@@ -67,3 +68,12 @@ registry-down:
 
 registry-logs:
 	docker compose -f docker-compose.registry.yml logs -f
+
+obs-up:
+	docker compose -f docker-compose.observability.yml up -d
+
+obs-down:
+	docker compose -f docker-compose.observability.yml down
+
+obs-logs:
+	docker compose -f docker-compose.observability.yml logs -f
